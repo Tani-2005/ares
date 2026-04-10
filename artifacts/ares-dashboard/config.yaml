@@ -1,0 +1,93 @@
+system:
+  name: "ARES"
+  full_name: "Advanced Reconnaissance & Escalation System"
+  version: "1.0"
+  classification: "UNCLASSIFIED // ACADEMIC USE ONLY"
+
+database:
+  path: "data/master_data.db"
+
+zone_a_countries:
+  - India
+  - Pakistan
+  - China
+  - Bangladesh
+  - Sri Lanka
+  - Nepal
+  - Myanmar
+  - Thailand
+  - Vietnam
+  - Philippines
+  - Indonesia
+  - Malaysia
+  - Singapore
+  - South Korea
+  - Japan
+  - Taiwan
+
+zone_b_countries:
+  - United States
+  - Canada
+  - Germany
+  - France
+  - United Kingdom
+  - European Union
+  - Russia
+
+gdelt:
+  keywords:
+    - "India China border"
+    - "South China Sea"
+    - "Indo-Pacific military"
+    - "ASEAN tension"
+    - "nuclear escalation Asia"
+    - "sanctions Asia"
+    - "India Pakistan conflict"
+  max_records: 250
+  timespan: "7d"
+
+feature_engineering:
+  rolling_windows: [7, 14, 30]
+  anomaly_contamination: 0.10
+  risk_thresholds:
+    green: 33
+    amber: 66
+    red: 100
+
+static_data_sources:
+  - name: "ACLED"
+    description: "Armed Conflict Location & Event Data"
+    type: "conflict_events"
+  - name: "GDELT"
+    description: "Global Database of Events, Language and Tone"
+    type: "news_events"
+  - name: "UN_SANCTIONS"
+    description: "UN Security Council Sanctions"
+    type: "diplomatic"
+  - name: "UN_VOTING"
+    description: "UN General Assembly Voting Records"
+    type: "diplomatic"
+  - name: "WORLD_BANK_GDP"
+    description: "World Bank GDP Growth Data"
+    type: "economic"
+  - name: "WORLD_BANK_INFLATION"
+    description: "World Bank Inflation Data"
+    type: "economic"
+  - name: "WORLD_BANK_UNEMPLOYMENT"
+    description: "World Bank Unemployment Data"
+    type: "economic"
+  - name: "WEO"
+    description: "IMF World Economic Outlook"
+    type: "economic"
+  - name: "EXCHANGE_RATE"
+    description: "Exchange Rate Data"
+    type: "economic"
+  - name: "SIPRI"
+    description: "Stockholm International Peace Research Institute Arms Data"
+    type: "military"
+  - name: "ICEWS"
+    description: "Harvard Integrated Crisis Early Warning System"
+    type: "conflict_events"
+  - name: "GSDB"
+    description: "Global Sanctions Database"
+    type: "diplomatic"

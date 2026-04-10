@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.env
+data/master_data.db
+data/*.db
+.streamlit/

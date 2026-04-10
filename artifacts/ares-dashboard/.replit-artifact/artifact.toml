@@ -1,0 +1,20 @@
+kind = "web"
+previewPath = "/"
+title = "ARES Dashboard"
+version = "1.0.0"
+
+[[services]]
+localPort = 8000
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "cd artifacts/ares-dashboard && streamlit run app.py --server.port 8000 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false"
+
+[services.production]
+
+[services.production.serve]
+type = "static"
+
+[services.production.build]
+args = ["echo", "streamlit-app"]
