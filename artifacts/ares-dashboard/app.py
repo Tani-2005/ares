@@ -291,7 +291,7 @@ def render_overview(stats: dict, query_df, config: dict, result: dict = None):
             </div>
             """, unsafe_allow_html=True)
 
-    render_risk_explanation()
+    render_risk_intel(query_df, result)
 
     if result and result.get("success") and not result.get("feature_df", pd.DataFrame()).empty:
         feats = result["feature_df"]
@@ -812,109 +812,134 @@ def render_country_analysis(query_df, result: dict = None):
         st.dataframe(recent, use_container_width=True, height=300, hide_index=True)
 
 
-def render_risk_explanation():
-    """Render a clear explanation of what risk levels mean in ARES context."""
-    st.markdown('<div class="section-header" style="margin-top:1.5rem"><span>🚦 Understanding Risk Levels</span><span class="section-badge">METHODOLOGY</span></div>', unsafe_allow_html=True)
+def _generate_risk_reason(row) -> str:
+    """Generate a short natural-language explanation for a country's risk level."""
+    country = row.get("country", "This country")
+    mil = float(row.get("military_event_count", 0))
+    accel = float(row.get("event_acceleration", 0))
+    diplo = float(row.get("diplomatic_silence_score", 0))
+    econ = float(row.get("economic_stress_index", 0))
+    sentiment = float(row.get("sentiment_volatility", 0))
+    tone = float(row.get("avg_tone", 0))
 
-    st.markdown("""
-    <div class="ares-card" style="border-left: 3px solid #388bfd">
-        <div style="font-size:0.85rem; color:#8b949e; margin-bottom:1rem; line-height:1.6">
-            The ARES <b style="color:#e6edf3">Composite Risk Score</b> (0–100) is a
-            weighted fusion of <b style="color:#e6edf3">8 leading indicators</b> derived from
-            multi-source geopolitical, conflict, and economic data.
-            It is designed to provide a <b style="color:#e6edf3">14–28 day strategic early warning</b>
-            before physical escalation occurs — detecting the <em>intent</em> and <em>preparation</em> phases,
-            not just the kinetic event itself.
-        </div>
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem">
+    drivers = []
+    if mil > 8:
+        drivers.append(f"elevated military activity ({int(mil)} events in the window)")
+    elif mil > 4:
+        drivers.append("above-baseline military event frequency")
 
-            <div style="background:#1a0d0d; border:1.5px solid #da3633; border-radius:8px; padding:1rem">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.6rem">
-                    <div style="width:14px; height:14px; border-radius:50%; background:#da3633; flex-shrink:0"></div>
-                    <div style="font-size:1rem; font-weight:800; color:#f85149">RED — Escalation</div>
-                </div>
-                <div style="font-size:0.78rem; color:#e6edf3; font-weight:600; margin-bottom:0.4rem">Score: 66–100</div>
-                <div style="font-size:0.75rem; color:#8b949e; line-height:1.7">
-                    Conflict Phase 2–4 signals detected.<br>
-                    <span style="color:#f85149">●</span> Military event frequency above baseline<br>
-                    <span style="color:#f85149">●</span> Rapid tone deterioration in media<br>
-                    <span style="color:#f85149">●</span> Extended diplomatic silence (&gt;14 days)<br>
-                    <span style="color:#f85149">●</span> Anomalous event acceleration<br>
-                    <b style="color:#e6edf3">Action:</b> Elevate to senior command. Verify with HUMINT.
-                </div>
-            </div>
+    if accel > 0.3:
+        drivers.append("sharp acceleration in conflict incidents")
 
-            <div style="background:#1a1500; border:1.5px solid #d29922; border-radius:8px; padding:1rem">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.6rem">
-                    <div style="width:14px; height:14px; border-radius:50%; background:#d29922; flex-shrink:0"></div>
-                    <div style="font-size:1rem; font-weight:800; color:#e3b341">AMBER — Tension</div>
-                </div>
-                <div style="font-size:0.78rem; color:#e6edf3; font-weight:600; margin-bottom:0.4rem">Score: 33–65</div>
-                <div style="font-size:0.75rem; color:#8b949e; line-height:1.7">
-                    Conflict Phase 1 signals present.<br>
-                    <span style="color:#e3b341">●</span> Narrative shift in state media detected<br>
-                    <span style="color:#e3b341">●</span> GDELT tone declining below baseline<br>
-                    <span style="color:#e3b341">●</span> Economic stress indicators elevated<br>
-                    <span style="color:#e3b341">●</span> Protest/civil unrest uptick<br>
-                    <b style="color:#e6edf3">Action:</b> Increase monitoring cadence. Watch for Phase 2 triggers.
-                </div>
-            </div>
+    if diplo > 0.6:
+        drivers.append("prolonged diplomatic silence with key partners")
+    elif diplo > 0.4:
+        drivers.append("reduced diplomatic engagement")
 
-            <div style="background:#0a1a0d; border:1.5px solid #2ea043; border-radius:8px; padding:1rem">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.6rem">
-                    <div style="width:14px; height:14px; border-radius:50%; background:#2ea043; flex-shrink:0"></div>
-                    <div style="font-size:1rem; font-weight:800; color:#3fb950">GREEN — Stable</div>
-                </div>
-                <div style="font-size:0.78rem; color:#e6edf3; font-weight:600; margin-bottom:0.4rem">Score: 0–32</div>
-                <div style="font-size:0.75rem; color:#8b949e; line-height:1.7">
-                    Conflict Phase 0 — normal baseline.<br>
-                    <span style="color:#3fb950">●</span> Event frequency within 1σ of baseline<br>
-                    <span style="color:#3fb950">●</span> Active diplomatic channels<br>
-                    <span style="color:#3fb950">●</span> Stable economic indicators<br>
-                    <span style="color:#3fb950">●</span> Neutral/positive media tone<br>
-                    <b style="color:#e6edf3">Action:</b> Routine monitoring. No alert required.
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    if econ > 0.55:
+        drivers.append("severe economic stress — currency pressure and GDP contraction")
+    elif econ > 0.35:
+        drivers.append("elevated economic stress indicators")
 
-    with st.expander("📐 How the Score is Calculated", expanded=False):
-        col1, col2 = st.columns([1.2, 1])
-        with col1:
-            st.markdown("""
-            <div style="font-size:0.82rem; color:#e6edf3; line-height:1.8">
-            <b style="color:#79c0ff">Step 1 — Signal Extraction</b><br>
-            For each country and rolling window (7/14/30 days), ARES computes raw signals
-            from ingested event data across all sources (GDELT, ACLED, UCDP, ICEWS, ReliefWeb).<br><br>
-            <b style="color:#79c0ff">Step 2 — Z-score Standardisation</b><br>
-            Each feature is z-score normalised across all countries so a country with
-            10 military events is judged relative to the regional baseline, not in absolute terms.<br><br>
-            <b style="color:#79c0ff">Step 3 — Weighted Fusion</b><br>
-            Features are combined using a weighted sum aligned with PRD signal hierarchy,
-            then passed through a sigmoid function to produce a 0–100 score.<br><br>
-            <b style="color:#79c0ff">Step 4 — Threshold Classification</b><br>
-            Score ≥ 66 → RED &nbsp;&nbsp;|&nbsp;&nbsp; Score ≥ 33 → AMBER &nbsp;&nbsp;|&nbsp;&nbsp; Score &lt; 33 → GREEN
+    if sentiment > 0.5:
+        drivers.append("high media sentiment volatility")
+
+    if tone < -5:
+        drivers.append("strongly negative international media tone")
+    elif tone < -2:
+        drivers.append("deteriorating media coverage tone")
+
+    context_map = {
+        "China": "ongoing territorial disputes in the South China Sea and cross-strait tensions with Taiwan",
+        "Pakistan": "internal security pressures, India border friction, and IMF-conditioned fiscal austerity",
+        "Myanmar": "post-coup military junta rule and active civil conflict across multiple fronts",
+        "India": "LAC border standoff with China and sub-regional power competition",
+        "North Korea": "continued ballistic missile tests and sanctions-driven economic deterioration",
+        "South Korea": "alliance recalibration and North Korean provocation cycle",
+        "Taiwan": "cross-strait military signalling and PLA air incursions into its ADIZ",
+        "Vietnam": "South China Sea island disputes and economic dependency tensions with China",
+        "Philippines": "escalating confrontations with Chinese coast guard vessels in the WPS",
+        "Indonesia": "EEZ violations in North Natuna Sea and domestic political transitions",
+        "Sri Lanka": "post-debt-crisis recovery and India-China geopolitical competition for influence",
+        "Nepal": "unresolved border disputes with India and growing Chinese economic footprint",
+        "Bangladesh": "political transition instability and Rohingya refugee burden",
+        "Thailand": "ongoing southern insurgency and political uncertainty following elections",
+        "Malaysia": "South China Sea overlapping claims and domestic political fragility",
+        "Japan": "remilitarisation debate, North Korean missile overflights, and Chinese maritime pressure",
+    }
+    geo_context = context_map.get(country, "")
+
+    if not drivers:
+        drivers = ["composite signal slightly above baseline"]
+
+    drivers_text = "; ".join(drivers[:3])
+    reason = f"{country} is flagged due to {drivers_text}."
+    if geo_context:
+        reason += f" Structurally, {country} contends with {geo_context}."
+
+    return reason
+
+
+def render_risk_intel(query_df, result: dict = None):
+    """Compact per-country risk intelligence briefing — top RED/AMBER countries only."""
+    feats = None
+    if result and result.get("success"):
+        feats = result.get("feature_df")
+    if feats is None and query_df:
+        try:
+            feats = query_df("SELECT * FROM engineered_features WHERE window_days=14 ORDER BY composite_risk_score DESC LIMIT 100")
+        except Exception:
+            return
+
+    if feats is None or (hasattr(feats, "empty") and feats.empty):
+        return
+
+    w14 = feats[feats["window_days"] == 14] if "window_days" in feats.columns else feats
+    if "risk_level" not in w14.columns:
+        return
+
+    high_risk = w14[w14["risk_level"].isin(["RED", "AMBER"])].sort_values(
+        "composite_risk_score", ascending=False
+    ).head(6)
+
+    if high_risk.empty:
+        return
+
+    st.markdown(
+        '<div class="section-header" style="margin-top:1.5rem">' +
+        '<span>🔍 Risk Intelligence Briefing</span>' +
+        '<span class="section-badge">AUTO-GENERATED</span>' +
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    n_cols = min(3, len(high_risk))
+    cols = st.columns(n_cols)
+
+    for i, (_, row) in enumerate(high_risk.iterrows()):
+        level = row.get("risk_level", "AMBER")
+        score = float(row.get("composite_risk_score", 0))
+        country = row.get("country", "Unknown")
+        reason = _generate_risk_reason(row)
+
+        if level == "RED":
+            border_c, bg_c, badge_c = "#da3633", "#1a0d0d", "badge-red"
+        elif level == "AMBER":
+            border_c, bg_c, badge_c = "#d29922", "#1a1500", "badge-amber"
+        else:
+            border_c, bg_c, badge_c = "#2ea043", "#0a1a0d", "badge-green"
+
+        with cols[i % n_cols]:
+            st.markdown(f"""
+            <div style="background:{bg_c}; border:1px solid {border_c}; border-radius:8px;
+                        padding:0.9rem 1rem; margin-bottom:0.6rem">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem">
+                    <div style="font-size:0.92rem; font-weight:700; color:#e6edf3">{country}</div>
+                    <span class="{badge_c}">{level} &middot; {score:.0f}</span>
+                </div>
+                <div style="font-size:0.75rem; color:#c9d1d9; line-height:1.55">{reason}</div>
             </div>
             """, unsafe_allow_html=True)
-        with col2:
-            weights_data = {
-                "Feature": [
-                    "Military Event Count", "Event Acceleration",
-                    "Sentiment Volatility", "Avg GDELT Tone (neg.)",
-                    "Diplomatic Silence", "Economic Stress"
-                ],
-                "Weight": [0.30, 0.20, 0.15, 0.15, 0.10, 0.10]
-            }
-            wdf = pd.DataFrame(weights_data)
-            fig = px.bar(wdf, x="Weight", y="Feature", orientation="h",
-                         color="Weight",
-                         color_continuous_scale=["#388bfd", "#d29922", "#da3633"],
-                         title="Signal Weights in Risk Model",
-                         labels={"Weight": "Weight", "Feature": ""})
-            fig.update_layout(**CHART_THEME, height=290, showlegend=False,
-                              coloraxis_showscale=False)
-            st.plotly_chart(fig, use_container_width=True)
 
 
 def main():
