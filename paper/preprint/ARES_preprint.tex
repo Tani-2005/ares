@@ -1,0 +1,440 @@
+\documentclass[preprint,12pt]{elsarticle}
+
+%% Essential mathematical and typographical packages
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{array}
+\usepackage{url}
+\usepackage{hyperref}
+
+%% Monochrome link formatting for academic preprint
+\hypersetup{
+    colorlinks=false,
+    pdfborder={0 0 0}
+}
+
+\journal{Preprint}
+
+\begin{document}
+
+\begin{frontmatter}
+
+%% Title
+\title{ARES: Conflict Escalation Early Warning System}
+
+%% Authors in ascending order of lowercase USN
+\author{Shirin S. Hegde}
+\ead{1by23is198@bmsit.in}
+
+\author{Sreshta Karthikeyan}
+\ead{1by23is215@bmsit.in}
+
+\author{Tanya Deep}
+\ead{1by23is231@bmsit.in}
+
+%% Shared Institutional Affiliation
+\affiliation{organization={Department of Information Science and Engineering, BMS Institute of Technology and Management},
+            city={Bengaluru},
+            state={Karnataka},
+            country={India}}
+
+%% Abstract
+\begin{abstract}
+Quantitative conflict forecasting has historically relied on retrospective event databases cataloging political violence after casualties occur, leaving policymakers in a reactive posture. While recent computational models predict isolated conflict events, they frequently function as uninterpretable black boxes and rarely synthesize narrative, economic, and diplomatic precursors. This paper presents ARES, an explainable multi-source conflict escalation early-warning system for continuous subnational and regional geopolitical monitoring. ARES harmonizes four heterogeneous data streams: physical conflict events (ACLED, UCDP), real-time media tone volatility (GDELT 2.0), structural macroeconomic stress gradients (World Bank, IMF), and diplomatic interactions and sanctions (UN, GSDB). Disparate spatial and temporal granularities are resolved via a canonical \texttt{Region\_Key} schema. The modular monolith architecture couples an asynchronous ingestion pipeline, domain-calibrated Sigmoid Z-Score Feature Fusion yielding an interpretable 0--100 escalation risk score, and an unsupervised Isolation Forest anomaly detector with mandatory factor attribution and raw-source traceability. Rather than asserting unverified predictive accuracy, this manuscript documents the verified operational software demonstrator and formalizes a prospective historical backtesting protocol to evaluate lead times and false alarms without temporal leakage.
+\end{abstract}
+
+%% Graphical abstract (optional placeholder omitted as per preprint guidelines)
+
+%% Highlights (optional placeholder omitted)
+
+%% Keywords
+\begin{keyword}
+Conflict Escalation \sep Early-Warning Systems \sep Multi-Source Data Fusion \sep Explainable AI \sep Spatio-Temporal Modeling \sep Decision Support Systems
+\end{keyword}
+
+\end{frontmatter}
+
+%% -------------------------------------------------------------------------
+%% 1. INTRODUCTION
+%% -------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+Armed conflicts, border skirmishes, and civil unrest rarely emerge as instantaneous, unheralded shocks. Almost universally, kinetic escalation is preceded by an observable, progressive accumulation of precursor signals: localized protest escalation, sharp negative shifts in media tone, hyperinflationary economic distress, and deteriorating diplomatic engagement~\cite{hegre2019views, hegre2018forecasting, hegre2019predicting, ward2013predicting, brandt2016forecasting}. Over the past decade, the democratization of open-source intelligence (OSINT) has produced vast volumes of machine-readable geopolitical data, ranging from subnational armed clash logs (ACLED~\cite{raleigh2010introducing}, UCDP~\cite{sundberg2013introducing}) and global news sentiment feeds (GDELT~\cite{leetaru2013gdelt}) to multilateral economic indicators (World Bank, IMF~\cite{mach2019climate, hsiang2013quantifying, burke2015global, miguel2004economic, collier2004greed, fearon2003ethnicity}).
+
+However, existing conflict-monitoring infrastructure suffers from a fundamental operational limitation: \emph{it remains overwhelmingly reactive}. Systems catalog violent events after they occur, functioning as historical documentation registries rather than predictive sentinels. When security analysts and humanitarian planners rely exclusively on retrospective clash counts, preventative diplomacy and risk mitigation cannot be mobilized until violence is already underway.
+
+To transition from retrospective documentation to proactive early warning, computational social science has increasingly applied statistical and machine learning models to conflict forecasting. Yet, existing computational forecasting approaches face three interrelated challenges:
+
+\begin{enumerate}
+    \item \textbf{Temporal Horizon Mismatch}: Leading predictive systems typically forecast binary conflict onset over long monthly or yearly horizons at coarse geographic levels, such as country-month or $0.5^\circ \times 0.5^\circ$ PRIO-grid cells~\cite{hegre2019views, hegre2018forecasting, hegre2019predicting}. They do not track the continuous, dynamic daily transitions from baseline stability to diplomatic friction, narrative polarization, and kinetic crisis.
+    \item \textbf{Interpretability Crisis in High-Stakes Decision Support}: Recent advances in deep temporal learning and dynamic graph representations (e.g., Temporal Graph Networks~\cite{rossi2020temporal}, EvolveGCN~\cite{pareja2020evolvegcn}, deep attention mechanisms~\cite{hossain2023identifying}) achieve high statistical fit but function as opaque black boxes. In high-stakes geopolitical analysis, a risk alert generated by an uninterpretable latent state cannot be validated, defended, or acted upon by human analysts. If a system cannot explain which specific factors triggered an alert and which verified source records substantiate it, it will inevitably be discounted by decision-makers.
+    \item \textbf{Data Heterogeneity and Spatial-Temporal Misalignment}: Escalation drivers span wildly incompatible scales. Kinetic clashes occur at discrete latitude and longitude coordinates on specific hours; news tone fluctuates across millions of unstructured articles daily; and macroeconomic stress indicators (GDP growth, CPI inflation, unemployment) are reported quarterly or annually at national aggregations. Harmonizing these disparate streams into a coherent analytical matrix without introducing severe aggregation noise remains an unsolved engineering challenge.
+\end{enumerate}
+
+\subsection{Operational Boundary: Human-in-the-Loop Decision Support}
+ARES is explicitly designed as a \emph{human-in-the-loop decision-support system}. It does not execute autonomous interventions, weapons dispatch, or automated policy enforcement. Its bounded objective is to ingest heterogeneous open data, compute transparent risk scores, detect statistical multivariate anomalies, and present human analysts with an interpretable, source-traceable operational picture.
+
+%% -------------------------------------------------------------------------
+%% 2. RELATED WORK
+%% -------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+
+Early quantitative conflict forecasting relied heavily on low-resolution regression frameworks using macro-structural covariates such as GDP per capita, regime type, and total population size. A major milestone was achieved by Hegre et al.\ with the ViEWS (Political Violence Early-Warning System) framework~\cite{hegre2019views, hegre2018forecasting, hegre2019predicting}, which established an ensemble machine learning architecture forecasting monthly conflict probabilities at the country and subnational PRIO-grid level using UCDP data. In parallel, Ward et al.~\cite{ward2013predicting} demonstrated that Random Forest classifiers trained on subnational event data from the Integrated Crisis Early Warning System (ICEWS~\cite{boschee2015icews}) could forecast domestic political instability with higher predictive power than classical logit specifications. Brandt et al.~\cite{brandt2016forecasting} developed Bayesian spatio-temporal Poisson models to capture regional spillover dynamics, while Muchlinski et al.~\cite{muchlinski2016comparing} systematically evaluated machine learning against logistic regression on highly imbalanced civil war onset datasets, demonstrating the superior capacity of tree-based ensembles to navigate rare-event class distributions without majority-class collapse. The empirical foundation for these models rests on standardized event repositories, notably ACLED (Raleigh et al.~\cite{raleigh2010introducing}), GDELT (Leetaru and Schrodt~\cite{leetaru2013gdelt}), ICEWS (Boschee et al.~\cite{boschee2015icews}), and UCDP GED (Sundberg and Melander~\cite{sundberg2013introducing}; Gleditsch et al.~\cite{gleditsch2002armed}; Chojnacki et al.~\cite{chojnacki2012event}).
+
+To capture dynamic interactions among geopolitical actors, recent studies have embraced graph neural networks and temporal knowledge graphs. Rossi et al.~\cite{rossi2020temporal} introduced Temporal Graph Networks (TGNs) for continuous-time dynamic relational graphs, while Pareja et al.~\cite{pareja2020evolvegcn} proposed EvolveGCN to adapt graph convolutional parameters across time steps using recurrent architectures. Trivedi et al.~\cite{trivedi2019dyrep, trivedi2017know} formulated dynamic relational representations via DyRep and Know-Evolve. In specialized security domains, Campedelli et al.~\cite{campedelli2021learning} modeled terrorist target selection using meta-graphs, Hossain et al.~\cite{hossain2023identifying} deployed multi-head attention networks across GDELT event streams, and Ma et al.~\cite{ma2023event} synthesized graph architectures for event forecasting. Related foundational architectures include Graph Convolutional Networks (Kipf and Welling~\cite{kipf2017semi}), Graph Attention Networks (Veli\v{c}kovi\'{c} et al.~\cite{velickovic2018graph}), and Temporal Graph Attention (Xu et al.~\cite{xu2020inductive}). Complementary natural language representations have advanced from static dictionaries to transformer language models~\cite{devlin2019bert, liu2019roberta, sanh2019distilbert, banea2014multilingual, hutto2014vader, vaswani2017attention, radford2019language, reimers2019sentence}. While these deep relational architectures excel at modeling latent topological actor shifts, they impose severe opacity: attention weights and node embeddings cannot be straightforwardly translated into operational evidence trails for defense analysts.
+
+A substantial macroeconomic and political science literature demonstrates that economic shocks and environmental disruptions serve as baseline structural drivers of conflict. Synthesizing cross-disciplinary expert consensus, Mach et al.~\cite{mach2019climate} established climate and environmental anomalies as measurable risk multipliers for organized violence. Hsiang et al.~\cite{hsiang2013quantifying} and Burke et al.~\cite{burke2015global} demonstrated non-linear relationships between climatic anomalies, macroeconomic productivity loss, and civil conflict. Earlier empirical work by Miguel et al.~\cite{miguel2004economic}, Collier and Hoeffler~\cite{collier2004greed}, and Fearon and Laitin~\cite{fearon2003ethnicity} proved that negative income shocks, soaring inflation, and rapid unemployment spikes severely lower the opportunity cost of rebellion and civil unrest, justifying the integration of macroeconomic stress indicators alongside kinetic event data.
+
+Predicting future risk trajectories over rolling horizons builds upon multivariate time-series modeling. Lim et al.~\cite{lim2021temporal} introduced the Temporal Fusion Transformer (TFT), combining recurrent layers with self-attention to provide interpretable multi-horizon quantile forecasts. Salinas et al.~\cite{salinas2020deepar} formulated DeepAR, an autoregressive recurrent network producing probabilistic forecasts over volatile, sparse event counts. Zerveas et al.~\cite{zerveas2021transformer} demonstrated self-supervised transformer representations for multivariate time series. For unsupervised anomaly detection in non-linear feature spaces without labeled outlier annotations, Liu et al.~\cite{liu2008isolation} developed the Isolation Forest algorithm, isolating rare multidimensional anomalies through recursive random partitioning.
+
+In high-stakes analytical settings, predictive systems must satisfy rigorous interpretability constraints. Theoretical frameworks by Sch\"{o}lkopf et al.~\cite{scholkopf2021toward} emphasize that machine learning models deployed in non-stationary environments must learn causal representations rather than superficial observational correlations to avoid catastrophic failure under distribution shifts. Athey and Imbens~\cite{athey2022machine} outlined rigorous methodologies for estimating heterogeneous treatment effects and decomposing complex machine learning outputs into actionable, interpretable drivers. These principles underpin ARES's architectural mandate that every alert must provide localized factor attributions and verifiable source-level evidence trails.
+
+Table~\ref{tab:comparative} positions ARES against existing computational conflict monitoring and forecasting platforms across core modeling paradigms, data scope, spatial-temporal resolution, and explainability.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Comparative Positioning of Conflict Forecasting Systems}
+\label{tab:comparative}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash\hsize=1.10\hsize}X >{\raggedright\arraybackslash\hsize=1.00\hsize}X >{\raggedright\arraybackslash\hsize=1.00\hsize}X >{\raggedright\arraybackslash\hsize=0.90\hsize}X >{\raggedright\arraybackslash\hsize=1.00\hsize}X}
+\toprule
+\textbf{System / Work} & \textbf{Core Modeling Approach} & \textbf{Data Integration Scope} & \textbf{Spatial \& Temporal Resolution} & \textbf{Explainability \& Traceability} \\
+\midrule
+ViEWS \newline (Hegre et al.~\cite{hegre2019views, hegre2018forecasting, hegre2019predicting}) & Ensemble ML (Logit, Random Forest, Hurdle) & UCDP conflict events + structural covariates & $0.5^\circ \times 0.5^\circ$ PRIO-grid \& country-month (1--36 mo) & Low to Med: Global feature importances; country-level risk profiles; no local live tracebacks. \\
+\addlinespace
+ICEWS-RF \newline (Ward et al.~\cite{ward2013predicting}) & Random Forest classifiers & ICEWS diplomatic and crisis event logs & Subnational administrative units; monthly intervals & Low: Global Gini feature importance; no local per-prediction attribution; no source URLs. \\
+\addlinespace
+GDELT-Attention \newline (Hossain et al.~\cite{hossain2023identifying}) & Deep Attention Neural Networks & GDELT media events and localized tone streams & National level; multi-day event sequence horizons & Low: Latent attention weights unmapped to operational evidence; opaque activations. \\
+\addlinespace
+\textbf{ARES} \newline \textbf{(This System)} & \textbf{Domain-Calibrated Sigmoid Z-Score + Isolation Forest} & \textbf{4 Domains: Conflict Events + Tone + Macroeconomics + Diplomatic} & \textbf{Regional/National \texttt{Region\_Key}; daily rolling windows (7d, 14d, 30d)} & \textbf{High: Mandatory local factor attribution breakdown + direct raw-source URL tracebacks.} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%% -------------------------------------------------------------------------
+%% 3. RESEARCH GAP AND CONTRIBUTIONS
+%% -------------------------------------------------------------------------
+\section{Research Gap and Contributions}
+\label{sec:gaps}
+
+\subsection{Nearest-Neighbour Analysis}
+The single closest prior system to ARES is ViEWS (Hegre et al., 2019)~\cite{hegre2019views}. Both systems seek to provide subnational early warning of political violence using machine learning and open data. However, ViEWS is optimized for medium- to long-range structural forecasting (months to years) using monthly calendar aggregations and static structural covariates.
+
+\subsection{The Precise Research Gap}
+While established conflict early-warning systems such as ViEWS demonstrate the viability of ensemble statistical forecasting over monthly grid-cell event data, they operate primarily on retrospective monthly event logs with global model-level feature importances; ARES contributes an explainable, multi-source data fusion engineering system that harmonizes near-real-time media tone volatility, physical conflict events, macroeconomic stress gradients, and diplomatic signaling into an interpretable daily risk score with mandatory per-alert factor attribution and raw source-evidence traceability.
+
+\subsection{System Contributions}
+ARES does not claim the creation of a fundamentally new machine learning algorithm. Rather, its scientific and technical contribution is an engineering and data-fusion system that:
+\begin{enumerate}
+    \item Reconciles radically disparate spatial, temporal, and semantic data streams into a unified spatio-temporal representation (\texttt{Region\_Key}).
+    \item Enforces strict mathematical explainability at the decision boundary, preventing black-box opacity in sensitive defense and humanitarian contexts.
+    \item Couples continuous 0--100 risk indexing with an unsupervised Isolation Forest anomaly detector to isolate multi-variable outliers.
+    \item Provides an end-to-end, reproducible software architecture linking live OSINT ingestion to an analyst-facing decision-support dashboard.
+\end{enumerate}
+
+%% -------------------------------------------------------------------------
+%% 4. RESEARCH QUESTIONS AND OBJECTIVES
+%% -------------------------------------------------------------------------
+\section{Research Questions and Objectives}
+\label{sec:rqs}
+
+This research is organized around three fundamental research questions:
+\begin{itemize}
+    \item \textbf{RQ1 (Harmonization)}: Can heterogeneous data streams operating across disparate spatial formats (coordinate points, national ISO codes) and temporal frequencies (daily news streams, quarterly macroeconomic indicators) be unified into a standardized feature matrix without introducing temporal leakage or aggregation artifacts?
+    \item \textbf{RQ2 (Explainability \& Decision-Support Verification)}: How can multi-criteria risk scoring be formulated such that high-dimensional statistical anomaly signals are mapped directly to human-interpretable factor attributions and verifiable open-source URLs?
+    \item \textbf{RQ3 (Prospective Lead Time \& False-Alarm Trade-Offs)}: Under rigorous retrospective historical backtesting with pre-peak data cutoffs ($T_{\text{cutoff}} < T_{\text{peak}}$), does a multi-source fusion model achieve positive early-warning lead times (7--21 days) while suppressing false alarm rates ($<15\%$) during peacetime baselines?
+\end{itemize}
+
+To answer these questions, the project establishes five engineering objectives:
+\begin{itemize}
+    \item \textbf{O1}: Engineer an asynchronous ingestion pipeline capable of fetching and parsing 12 geopolitical and macroeconomic data sources with automated rate-limiting and payload deduplication.
+    \item \textbf{O2}: Establish a canonical \texttt{Region\_Key} schema mapping point coordinates and national indicators into Indo-Pacific strategic zones (Zone A theater, Zone B sphere).
+    \item \textbf{O3}: Implement rolling-window feature extraction ($W \in \{7, 14, 30\}$ days) measuring event acceleration, sentiment volatility, protest transitions, and economic distress.
+    \item \textbf{O4}: Implement domain-weighted Sigmoid Z-Score feature fusion and an unsupervised Isolation Forest anomaly detection engine.
+    \item \textbf{O5}: Build an analyst decision-support web interface featuring dynamic geographic heatmaps, 90-day trajectory plots, and raw-source URL tracebacks.
+\end{itemize}
+
+%% -------------------------------------------------------------------------
+%% 5. SYSTEM ARCHITECTURE
+%% -------------------------------------------------------------------------
+\section{System Architecture}
+\label{sec:arch}
+
+ARES is engineered following the Modular Monolith architectural pattern. All computational pipelines execute within a unified software environment, eliminating the network latency, service discovery complexity, and distributed state overhead of microservices while enforcing strict logical separation of concerns across internal modules:
+
+\begin{enumerate}
+    \item \textbf{\texttt{/ingestion}}: Coordinates asynchronous external API requests via Python \texttt{asyncio}, \texttt{aiohttp}, and \texttt{requests}. Manages HTTP rate limits, exponential backoff (base 2\,s, 3 retries), and payload hashing to prevent redundant database writes.
+    \item \textbf{\texttt{/preprocessing}}: Sanitizes raw strings, normalizes ISO country entities into standardized \texttt{Region\_Key} identifiers, imputes missing fields via historical forward-fill, and clips numeric outliers.
+    \item \textbf{\texttt{/storage}}: Provides an abstraction layer over local relational storage (SQLite \texttt{master\_data.db} in the demonstrator; PostgreSQL + PostGIS schema specified for production). Fact tables carry composite indices on \texttt{(region\_key, event\_date)}.
+    \item \textbf{\texttt{/features}}: Executes rolling window transformations ($W \in \{7, 14, 30\}$ days) generating mathematical features for event acceleration, tone volatility, protest transition, and economic distress.
+    \item \textbf{\texttt{/model}}: Computes the composite Sigmoid Z-Score risk score, executes Isolation Forest anomaly partitioning, and derives feature attribution rankings.
+    \item \textbf{\texttt{/frontend} and \texttt{/api}}: Renders an interactive multi-view Streamlit dashboard (\path{artifacts/ares-dashboard/app.py}) providing mission status cards, regional heatmaps, interactive Plotly trendlines, and source evidence feeds, mirrored by an Express 5 TypeScript API monorepo.
+\end{enumerate}
+
+%% -------------------------------------------------------------------------
+%% 6. DATA SOURCES AND GEOGRAPHIC HARMONIZATION
+%% -------------------------------------------------------------------------
+\section{Data Sources and Geographic Harmonization}
+\label{sec:data}
+
+ARES integrates 12 heterogeneous geopolitical, economic, and diplomatic data sources, reconciling point-coordinates, textual sentiment, and macroeconomic indicators.
+
+\subsection{Geographic Harmonization via Canonical \texttt{Region\_Key}}
+To resolve spatial incompatibility between point-coordinates (latitude and longitude) and national or regional reporting, ARES implements a canonical \texttt{Region\_Key} schema. Two strategic zones are enforced: Zone A (The Conflict Theater---16 core Indo-Pacific nations monitored at high resolution for kinetic and narrative shifts) and Zone B (The Influence Sphere---major external powers monitored for distal causal policy shifts, sanctions, and arms deals). Point coordinates are resolved to bounding polygons during ingestion, while unstructured text references are normalized to standardized atomic keys (e.g., \path{ZoneA_IND}, \path{ZoneA_CHN}).
+
+\subsection{Temporal Resolution Alignment}
+To synchronize high-frequency daily event and sentiment data with quarterly macroeconomic statistics, ARES employs a step-wise constant backward-fill (carry-forward) strategy. Macroeconomic indicators (GDP, CPI, Unemployment) establish a baseline vulnerability score for a region across a 90-day calendar quarter. High-frequency daily event counts and sentiment shocks are then computed as dynamic deviations over this structural baseline.
+
+Table~\ref{tab:sources} details the integrated data sources, operational coverage, ingestion modalities, reporting cadences, and licensing constraints.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Data Sources, Operational Coverage, and Licensing Constraints}
+\label{tab:sources}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash\hsize=0.95\hsize}X >{\raggedright\arraybackslash\hsize=0.95\hsize}X >{\raggedright\arraybackslash\hsize=1.05\hsize}X >{\raggedright\arraybackslash\hsize=0.85\hsize}X >{\raggedright\arraybackslash\hsize=1.20\hsize}X}
+\toprule
+\textbf{Source Name} & \textbf{Domain} & \textbf{Ingestion Modality} & \textbf{Reporting Cadence} & \textbf{Licensing \& Terms of Use} \\
+\midrule
+ACLED & Kinetic Conflict & Structured CSV / API & Weekly / Daily & Academic non-commercial; mandatory attribution. \\
+GDELT 2.0 & Narrative / Tone & Live JSON REST API & 15-minute stream & Open access / Public domain; attribution requested. \\
+UCDP GED & Kinetic Conflict & REST API / Static & Annual / Monthly & CC BY 4.0 open academic license. \\
+ICEWS & Crisis Events & Harvard Dataverse & Historical & Open research data; Harvard Dataverse terms. \\
+World Bank API & Macroeconomics & Live REST API & Annual / Quarterly & CC BY 4.0 Open Data. \\
+IMF Datamapper & Macroeconomics & Live REST API & Bi-annual (WEO) & Open data with citation. \\
+ReliefWeb & Humanitarian Crisis & Live REST API & Daily & CC BY 4.0 Open Humanitarian Data. \\
+UN Sanctions & Diplomatic & Static Database & Semi-annual & UN public domain records. \\
+UNGA Voting & Diplomatic & Static CSV & Annual & Open academic dataset. \\
+SIPRI & Arms Transfers & Static Database & Annual & SIPRI open access policy; citation required. \\
+GSDB & Sanctions & Static Database & Annual & Global Sanctions Database; academic open access. \\
+Exchange Rates & Currency Volatility & Live REST API & Daily & Open financial exchange APIs. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%% -------------------------------------------------------------------------
+%% 7. FEATURE ENGINEERING AND RISK SCORING
+%% -------------------------------------------------------------------------
+\section{Feature Engineering and Risk Scoring}
+\label{sec:features}
+
+ARES extracts 5 primary rolling features per region over lookback windows $W \in \{7, 14, 30\}$ days:
+
+\subsection{Event Acceleration}
+Captures surges in kinetic frequency relative to historical baselines. The denominator is bounded by $\max(\cdot, 1)$ to eliminate division-by-zero errors when the historical baseline is zero:
+\begin{equation}
+A(t) = \frac{E_W(t) - E_W(t-W)}{\max(E_W(t-W), 1)}
+\end{equation}
+
+\subsection{Sentiment Volatility}
+Quantifies narrative instability and reporting divergence across $N$ news articles published within window $W$:
+\begin{equation}
+\sigma_{\text{tone}} = \sqrt{\frac{1}{\max(N-1, 1)} \sum_{i=1}^N (T_i - \bar{T})^2} \quad \text{for } N > 1
+\end{equation}
+where $T_i$ is the GDELT tone of article $i$ and $\bar{T}$ is the window mean. For $N \le 1$, $\sigma_{\text{tone}}$ defaults to $0.0$.
+
+\subsection{Protest-to-Violence Transition Ratio}
+Monitors the transition from non-violent civil demonstrations to armed conflict:
+\begin{equation}
+R_{\text{pv}} = \frac{C_{\text{protest}}}{\max(C_{\text{protest}} + C_{\text{violence}}, 1)}
+\end{equation}
+A value near 1.0 denotes peaceful mobilization, whereas a drop toward 0.0 signals escalation. The quantity $1 - R_{\text{pv}}$ acts as the composite indicator.
+
+\subsection{Macroeconomic Stress Gradient}
+Aggregates inflation shocks, growth contractions, and unemployment into an index $S_{\text{econ}} \in [0, 1]$ via linear saturation thresholding:
+\begin{equation}
+\begin{split}
+S_{\text{econ}} = \frac{1}{\sum_{j=1}^3 \alpha_j} \Biggl[ & \alpha_1 \cdot \text{clamp}\left(\frac{\Delta \text{CPI} - 3.0}{15.0}, 0, 1\right) \\
+& + \alpha_2 \cdot \text{clamp}\left(\frac{2.0 - \Delta \text{GDP}}{8.0}, 0, 1\right) \\
+& + \alpha_3 \cdot \text{clamp}\left(\frac{\text{Unemp} - 5.0}{15.0}, 0, 1\right) \Biggr]
+\end{split}
+\end{equation}
+with domain elasticities $\alpha_1 = 0.40, \alpha_2 = 0.35, \alpha_3 = 0.25$ grounded in conflict economics literature~\cite{mach2019climate, miguel2004economic}.
+
+\subsection{Diplomatic Silence Duration}
+Measures the number of calendar days elapsed since the last recorded bilateral diplomatic summit or treaty interaction:
+\begin{equation}
+D_{\text{silence}}(t) = \min(t - t_{\text{last\_diplo}}, W_{\max})
+\end{equation}
+
+\subsection{Mathematical Sigmoid Z-Score Fusion Engine}
+Features are standardized across regional cohort baselines into Z-scores ($Z_k = (F_k - \mu_k)/\sigma_k$, with $\sigma_k = 0$ yielding $Z_k = 0$) and transformed via a domain-weighted logistic sigmoid:
+\begin{equation}
+\text{Risk\_Score} = \frac{100}{1 + \exp\left(-\sum_{k=1}^K w_k \cdot Z_k\right)}
+\end{equation}
+
+Heuristic feature weights: Military Clash Count ($w = 0.30$), Event Acceleration ($w = 0.20$), Sentiment Volatility ($w = 0.15$), Negative Tone ($w = 0.15$), Diplomatic Silence ($w = 0.10$), and Macroeconomic Stress ($w = 0.10$). Operational risk tiers: Green (0--32, Baseline), Amber (33--65, Elevated Tension), Red (66--100, Critical Escalation).
+
+\emph{Methodological Qualification}: The resulting \texttt{Risk\_Score} is an uncalibrated multi-criteria decision-support index, \textbf{not} a calibrated Bayesian posterior probability $P(\text{Escalation} \mid X)$. The weights $w_k$ represent domain-informed relative importances rather than maximum-likelihood parameters.
+
+\subsection{Unsupervised Isolation Forest Anomaly Detection}
+To flag non-linear statistical anomalies without requiring labeled historical anomaly datasets, ARES applies an Isolation Forest model (\texttt{IsolationForest}~\cite{liu2008isolation} via Scikit-learn) fitted on feature vectors $\mathbf{x} \in \mathbb{R}^5$ with contamination parameter $0.10$ and random seed $42$. Regional feature vectors in the top 10\% outlier density are flagged as anomalous (\texttt{is\_anomaly} = \texttt{True}).
+
+%% -------------------------------------------------------------------------
+%% 8. EXPLAINABILITY AND HUMAN-IN-THE-LOOP DECISION SUPPORT
+%% -------------------------------------------------------------------------
+\section{Explainability and Human-in-the-Loop Decision Support}
+\label{sec:xai}
+
+\subsection{Distinction Between Feature Attribution and Causal Explanation}
+A critical failure of predictive systems in defense and foreign policy analysis is conflating statistical feature attribution with causal explanation. When an algorithm indicates that ``Event Acceleration accounts for 58\% of the elevated risk score,'' this represents a mathematical decomposition of the linear combination $\sum w_k Z_k$ or tree split path; it does not prove that event acceleration caused the geopolitical crisis.
+
+ARES enforces strict epistemic humility in its user interface:
+\begin{enumerate}
+    \item Feature attributions are labeled as \emph{Contributing Observed Indicators}, avoiding deterministic causal assertions.
+    \item The interface explicitly presents counter-evidence and de-escalation markers (e.g., scheduled bilateral trade talks, cooperative treaty statements) to prevent confirmation bias.
+\end{enumerate}
+
+\subsection{Source Evidence Traceability}
+Every computed feature points back to underlying database primary keys and external source URLs. When an analyst clicks on an elevated region in the ARES dashboard, the interface renders a dynamic source evidence feed displaying the exact headlines, publication timestamps, and external URLs of GDELT news articles and ACLED incident logs driving the score, enabling human verification in under two minutes.
+
+%% -------------------------------------------------------------------------
+%% 9. EVALUATION PROTOCOL
+%% -------------------------------------------------------------------------
+\section{Evaluation Protocol}
+\label{sec:eval}
+
+In accordance with scientific integrity standards, because empirical historical backtesting experiments are currently in-progress, this section outlines the formal evaluation protocol designed to validate ARES against historical crisis benchmarks without temporal information leakage.
+
+\subsection{Benchmark Crisis Selection}
+The evaluation protocol specifies backtesting across three documented Indo-Pacific geopolitical crisis sequences between 2020 and 2025:
+\begin{enumerate}
+    \item \textbf{The 2020 Galwan Valley Border Standoff (India--China)}: Characterized by prolonged narrative polarization, troop build-ups, and diplomatic silence preceding the June 15, 2020 kinetic clash.
+    \item \textbf{The August 2022 Taiwan Strait Military Exercises}: Preceded by weeks of intense international media rhetoric, diplomatic warnings, and airspace hazard notices following high-level political visits.
+    \item \textbf{The 2021 Myanmar Post-Coup Civil Conflict}: Demonstrating a classic protest-to-violence transition where widespread civilian demonstrations progressively shifted to armed resistance over a 60-day window.
+\end{enumerate}
+
+\subsection{Prevention of Temporal Information Leakage}
+To ensure that backtest validation accurately reflects real-world forecasting conditions:
+\begin{itemize}
+    \item \textbf{Strict Historical Cutoff ($T_{\text{cutoff}}$)}: For any historical crisis peak occurring at date $T_{\text{peak}}$, the model is restricted to ingesting data strictly up to $T_{\text{cutoff}} = T_{\text{peak}} - \Delta t$, where $\Delta t \in \{7, 14, 21, 28\}$ days.
+    \item \textbf{No Future Data Leakage}: Normalization parameters ($\mu_k, \sigma_k$) and imputation statistics must be derived strictly from the training interval $[T_0, T_{\text{cutoff}}]$.
+    \item \textbf{Chronological Time-Based Splits}: Random train/test shuffling is strictly prohibited. Data is partitioned chronologically: 2018--2021 for baseline historical calibration, 2022--2025 for prospective evaluation.
+\end{itemize}
+
+\subsection{Benchmark Baseline Models}
+ARES will be evaluated against four standard comparative baselines:
+\begin{enumerate}
+    \item \textbf{Na\"{\i}ve Persistence Baseline}: Predicts that tomorrow's risk level will equal today's observed event intensity.
+    \item \textbf{Historical Rolling Mean Baseline}: Computes rolling 30-day historical event averages without narrative or economic fusion.
+    \item \textbf{Autoregressive Integrated Moving Average (ARIMA)}: Univariate time-series forecasting fit strictly on historical event counts.
+    \item \textbf{Unregularized Logistic Regression}: Standard logit model trained on raw event and economic features without non-linear sigmoid normalization or anomaly filtering.
+\end{enumerate}
+
+\subsection{Formal Target Evaluation Metrics}
+\begin{itemize}
+    \item \textbf{Recall on High-Impact Escalation Events}: Target $\ge 75\%$. Defined as the proportion of true documented crisis peaks preceded by an elevated alert within the lookback window.
+    \item \textbf{Precision on High-Risk Alerts}: Target $\ge 80\%$. Measures the proportion of Red alerts that corresponded to genuine historical escalation, penalizing spurious false alarms.
+    \item \textbf{False Positive Rate (FPR)}: Target $< 15\%$. Evaluates the frequency of false alerts generated during documented peacetime baseline intervals.
+    \item \textbf{Early-Warning Lead Time ($\tau_{\text{lead}}$)}:
+    \begin{equation}
+    \tau_{\text{lead}} = T_{\text{peak}} - T_{\text{first\_Red\_alert}}
+    \end{equation}
+    Target: Positive and maximized ($\tau_{\text{lead}} \in [7, 21]$ days).
+    \item \textbf{Brier Score \& Calibration Error}: Evaluates the reliability of risk score gradations across peaceful, tense, and acute states.
+    \item \textbf{Ablation Performance}: Quantifies predictive drops when withholding individual feature families ($\Delta \text{AUC}$ across Event, Narrative, Macroeconomic, and Diplomatic subsets).
+\end{itemize}
+
+%% -------------------------------------------------------------------------
+%% 10. RESULTS AND IMPLEMENTATION STATUS
+%% -------------------------------------------------------------------------
+\section{Results and Implementation Status}
+\label{sec:results}
+
+In strict adherence to scientific integrity guidelines, no empirical predictive accuracy, lead times, or calibrated probability curves are reported as completed findings in this manuscript. The current contribution represents a verified, functional software system and prospective experimental design.
+
+Table~\ref{tab:status} provides an unvarnished audit of the ARES codebase, categorizing components across verified implementation, partial demonstrators, and designed future milestones.
+
+\begin{xltabular}{\textwidth}{>{\raggedright\arraybackslash\hsize=1.05\hsize}X >{\raggedright\arraybackslash\hsize=0.85\hsize}X >{\raggedright\arraybackslash\hsize=0.90\hsize}X >{\raggedright\arraybackslash\hsize=1.20\hsize}X}
+\caption{ARES Implementation Status and Verification Audit} \label{tab:status} \\
+\toprule
+\textbf{Component / Subsystem} & \textbf{Current Status} & \textbf{Verification Location} & \textbf{Technical Scope \& Limitations} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\footnotesize\itshape Table~\ref{tab:status} continued from previous page} \\
+\toprule
+\textbf{Component / Subsystem} & \textbf{Current Status} & \textbf{Verification Location} & \textbf{Technical Scope \& Limitations} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize\itshape Continued on next page} \\
+\endfoot
+\bottomrule
+\endlastfoot
+Live Ingestion Engine & Implemented \& Verified & \path{src/live_data.py} & Active REST fetchers for GDELT 2.0, World Bank, IMF, UCDP, ReliefWeb. \\
+Static Baseline Ingestion & Implemented \& Verified & \path{src/static_data_generator.py} & Historical generators for ACLED, ICEWS, SIPRI, UN Sanctions ($\sim$10k records). \\
+Database Persistence Layer & Implemented \& Verified & \path{src/database.py} & SQLite (\texttt{master\_data.db}) operational; PostGIS spatial schema specified. \\
+Feature Engineering Pipeline & Implemented \& Verified & \path{src/feature_engineering.py} & Verified computation of acceleration, volatility, protest ratio, economic stress. \\
+Sigmoid Z-Score Fusion Engine & Implemented \& Verified & \path{src/feature_engineering.py} & Continuous 0--100 risk scoring with domain-informed heuristic weights. \\
+Unsupervised Anomaly Detector & Implemented \& Verified & \path{src/feature_engineering.py} & Operational \texttt{IsolationForest} ($contamination=0.10$) flagging outliers. \\
+Analyst Decision Dashboard & Implemented \& Verified & \path{app.py} & Functional 5-page Streamlit web app on port 8000 with interactive Plotly views. \\
+Source Evidence Traceability & Implemented \& Verified & \path{app.py} & Dynamic URL traceback linking risk scores to raw GDELT and ACLED records. \\
+Supervised Classifier Head & Designed / Specified & SRS \S3.4; Arch \S3.2 & RandomForest / XGBoost classifiers specified; currently using Sigmoid Fusion. \\
+Deep NLP Transformer Head & Designed / Specified & SRS \S3.4; Tech Stack & Fine-tuned DistilBERT head specified; currently uses GDELT Tone / Goldstein. \\
+Full PostGIS Polygon Joins & Designed / Specified & Architecture Doc \S2.1 & \texttt{ST\_Contains} spatial queries specified; demonstrator uses table lookups. \\
+Enterprise TypeScript Monorepo & Partially Implemented & \path{artifacts/api-server/}, \path{lib/} & Express 5 REST API \& Drizzle schemas created; operates alongside Python. \\
+Historical Backtesting Execution & Protocol Formalized & Section~\ref{sec:eval} & Full experimental protocol formalized; empirical execution ongoing. \\
+\end{xltabular}
+
+%% -------------------------------------------------------------------------
+%% 11. DISCUSSION
+%% -------------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Systems Engineering in Geopolitical Early Warning}
+In computational conflict research, theoretical algorithms frequently fail in production because they ignore raw data ingestion failures, API rate limits, spatial coordinate mismatches, and analyst cognitive constraints. ARES bridges this gap by demonstrating that a modular monolith architecture, combining asynchronous OSINT scrapers with domain-informed scoring and interactive evidence tracebacks, provides a viable operational platform for military intelligence and humanitarian watch officers.
+
+\subsection{Handling Reporting Latency and Narrative Divergence}
+Two persistent challenges in open-source geopolitical forecasting are reporting delay and deliberate propaganda:
+\begin{enumerate}
+    \item \textbf{Reporting Latency}: While GDELT streams are updated every 15 minutes, curated conflict event databases (ACLED, UCDP) operate on weekly or monthly curation cycles. ARES resolves this latency differential by using real-time media tone volatility as a high-frequency canary signal, while relying on curated event databases for baseline ground-truth calibration.
+    \item \textbf{Propaganda and Narrative Divergence}: State-controlled narratives frequently manipulate local media prior to military action. ARES mitigates this by analyzing narrative divergence---measuring statistical variance between domestic state media reporting and international independent wire services. A sharp divergence in domestic vs.\ international tone serves as an informative leading indicator of crisis preparation.
+\end{enumerate}
+
+%% -------------------------------------------------------------------------
+%% 12. LIMITATIONS, ETHICS, AND RESPONSIBLE USE
+%% -------------------------------------------------------------------------
+\section{Limitations, Ethics, and Responsible Use}
+\label{sec:ethics}
+
+\subsection{Bias Mitigation}
+\begin{enumerate}
+    \item \textbf{Media Coverage Bias}: Open-source news databases systematically over-report friction in digitally connected urban centers while under-reporting conflicts in rural or censored areas (the ``CNN effect''). ARES bounds its analytical confidence in regions with low open-source data density.
+    \item \textbf{Linguistic Representation}: English-language bias in sentiment tools can miss vernacular signals; expanding multilingual NLP models is a priority for future releases.
+    \item \textbf{False Alarms}: In geopolitical monitoring, frequent false positives induce alert fatigue, while false negatives carry grave humanitarian costs. The prospective evaluation protocol in Section~\ref{sec:eval} is explicitly designed to quantify this balance.
+\end{enumerate}
+
+\subsection{Human-in-the-Loop Governance}
+ARES is strictly a decision-support system. It must never be connected to autonomous weapons, kinetic targeting systems, or automated economic sanctions. All risk classifications are advisory, directing human analyst attention to emergent anomalies for qualitative intelligence corroboration.
+
+\subsection{Data Privacy and Licensing}
+ARES ingests only publicly available, macro-level news and statistical data. No personally identifiable information (PII) is scraped, processed, or persisted. All external datasets are utilized strictly under open-access, academic, and non-commercial terms.
+
+%% -------------------------------------------------------------------------
+%% 13. CONCLUSION AND FUTURE WORK
+%% -------------------------------------------------------------------------
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+ARES demonstrates the feasibility of building an explainable, multi-source conflict escalation early-warning system that bridges the gap between raw open-source intelligence and actionable defense decision support. By standardizing physical conflict logs, media tone volatility, macroeconomic stress gradients, and diplomatic interactions through a canonical \texttt{Region\_Key} schema, ARES establishes an end-to-end architecture coupling continuous risk scoring and unsupervised anomaly detection with mandatory factor attribution and direct raw-source URL traceability.
+
+Future Research Roadmap:
+\begin{enumerate}
+    \item Executing the formal prospective backtesting protocol across documented Indo-Pacific crises (2020 Galwan Valley, 2022 Taiwan Strait, 2021 Myanmar Post-Coup).
+    \item Empirical probability calibration via Platt scaling or Isotonic Regression to output formal Bayesian posterior probabilities $P(\text{Escalation} \mid X)$.
+    \item Hybrid integration of Temporal Graph Networks (TGNs) for transnational actor-alliance dynamics.
+\end{enumerate}
+
+%% -------------------------------------------------------------------------
+%% REFERENCES
+%% -------------------------------------------------------------------------
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}

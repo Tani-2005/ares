@@ -1,89 +1,85 @@
-# ARES Living Preprint Repository
-### *ARES: An Explainable Multi-Source Data Fusion Framework for Conflict Escalation Early Warning*
+# ARES: Conflict Escalation Early Warning System
+## Elsevier `elsarticle` Research Preprint Repository
 
-[![Preprint Version: 1.0.0](https://img.shields.io/badge/Preprint-v1.0.0--preprint-blue.svg)](#)
-[![Status: Foundational Framework](https://img.shields.io/badge/Status-Framework%20%26%20Protocol-orange.svg)](#)
-[![Peer Review: Open Preprint](https://img.shields.io/badge/Review-Self--Audited%20Preprint-success.svg)](#)
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-
----
-
-## 📌 Overview
-
-This directory contains the **living preprint** for **ARES (Advanced Reconnaissance & Escalation System)**. 
-
-The manuscript is designed as a modular, academically defensible publication that documents the complete system architecture, multi-source data ingestion pipeline, mathematical feature engineering formulas, and prospective evaluation protocol. It is structured so that prospective empirical evaluations and experimental results can be incorporated incrementally without rewriting the foundational methodology.
+**Preprint Date:** October 2026  
+**Document Class:** Elsevier `elsarticle.cls` (`\documentclass[preprint,12pt]{elsarticle}`)  
+**Bibliography Style:** `elsarticle-num.bst` (IEEE-compatible numeric citation order)  
 
 ---
 
-## 📄 File Inventory
+### Authors & Institutional Affiliation
 
-| Filename | Format | Description |
-|---|---|---|
-| [`ARES_preprint.docx`](ARES_preprint.docx) | Microsoft Word (.docx) | Complete, professionally styled academic manuscript ready for distribution, submission, or graduate school application portfolios. |
-| [`ARES_preprint.md`](ARES_preprint.md) | Markdown (.md) | Full-text version-controlled source of the manuscript with complete LaTeX math blocks, tables, and citations. |
-| [`REFERENCES.bib`](REFERENCES.bib) | BibTeX (.bib) | Verified bibliography containing 42 peer-reviewed citations with full metadata and DOIs. |
-| [`CHANGELOG.md`](CHANGELOG.md) | Markdown (.md) | Detailed audit log of revisions, methodological qualifications, and scientific integrity corrections. |
-| [`README.md`](README.md) | Markdown (.md) | This guide: versioning, roadmap, and update instructions. |
+1. **Shirin S. Hegde** — `1by23is198@bmsit.in`
+2. **Sreshta Karthikeyan** — `1by23is215@bmsit.in`
+3. **Tanya Deep** — `1by23is231@bmsit.in`
 
----
+*Department of Information Science and Engineering, BMS Institute of Technology and Management, Bengaluru, Karnataka, India.*
 
-## 🎯 Scope & Academic Positioning
-
-### Intended Use:
-- **Graduate School Applications**: Serves as a transparent, rigorous writing sample for MSc/PhD applications in Data Science, Applied AI, Computational Social Science, and Geospatial Analytics.
-- **Academic Preprint Hosting**: Formatted for submission to open-access repositories (e.g., arXiv, TechRxiv, SSRN).
-- **Project Progress Foundation**: Provides a clear roadmap for completing the historical backtesting experiments without compromising scientific honesty.
-
-### Scientific Integrity Principles:
-1. **Separation of Architecture from Evaluation**: System architecture and data-fusion implementations are documented as engineering achievements; empirical predictive accuracy and lead times are formalized strictly as a **prospective evaluation protocol** until historical backtesting is executed.
-2. **Heuristic Calibration vs. Empirical Learning**: Feature weights ($w_k$) and threshold tiers (Green/Amber/Red) are explicitly stated as domain-informed heuristic baselines rather than learned model parameters.
-3. **Attribution vs. Causation**: Model feature importances are identified as statistical associations, not causal proofs.
+> **Author & USN Conventions:**
+> - Authors are listed in strict ascending numerical order of their university USN (`1by23is198` < `1by23is215` < `1by23is231`).
+> - All USNs are formatted strictly in lowercase within institutional emails.
+> - Author bylines exclude supervisory and student role designations in accordance with academic preprint conventions.
 
 ---
 
-## 🔄 Instructions for Updating the Preprint
+### Repository File Inventory
 
-When historical backtesting experiments or model retraining are conducted, update the preprint following these steps:
+| File | Type | Description |
+| :--- | :--- | :--- |
+| [`ARES_preprint.tex`](ARES_preprint.tex) | LaTeX Source | Complete manuscript typeset in official Elsevier `elsarticle.cls` format. |
+| [`ARES_preprint.pdf`](ARES_preprint.pdf) | Compiled Document | Publication-grade PDF compiled from `ARES_preprint.tex`. |
+| [`references.bib`](references.bib) | BibTeX Database | 42 authentic, verified peer-reviewed citations with CrossRef/DOI metadata. |
+| [`elsarticle.cls`](elsarticle.cls) | Class File | Official Elsevier LaTeX document class (preprint, 12pt). |
+| [`elsarticle-num.bst`](elsarticle-num.bst) | Bibliography Style | Official Elsevier numbered bibliography style engine. |
+| [`ARES_integrity_audit.md`](ARES_integrity_audit.md) | Integrity Audit | Comprehensive audit separating implemented software from prospective evaluation protocols. |
+| [`README.md`](README.md) | Documentation | Compilation instructions, dependency guide, and template specifications. |
 
-### Step 1: Execute Historical Backtesting
-1. Select crisis cases from the documented Indo-Pacific backtesting catalog (e.g., 2020 Galwan Valley, 2022 Taiwan Strait tensions).
-2. Set historical cutoff date $T_{\text{cutoff}}$ strictly prior to crisis peak ($T_{\text{peak}}$) to prevent temporal leakage.
-3. Compute prospective evaluation metrics:
-   - Precision-Recall Area Under the Curve (PR-AUC)
-   - Brier Score (calibration error)
-   - Early Warning Lead Time ($T_{\text{peak}} - T_{\text{first alert}}$ in days)
-   - False Positive Rate (FPR) during pre-crisis stable periods.
+---
 
-### Step 2: Update Section 10 ("Results and Implementation Status")
-1. In `ARES_preprint.md`, replace the prospective declaration in Section 10 with a dedicated subsection:
-   `10.1 Empirical Backtesting Performance on Indo-Pacific Benchmark Cases`.
-2. Insert the verified results table detailing metrics across lookback windows (7d, 14d, 30d).
-3. Include an ablation study comparing single-source models against the multi-source fusion engine.
+### Compilation Instructions
 
-### Step 3: Update Abstract & Conclusion
-1. Add 1–2 sentences summarizing the verified empirical lead times and recall rates.
-2. Ensure no unverified claims exceed the logged data.
-
-### Step 4: Re-generate `ARES_preprint.docx`
-Run the generation script from the project root:
+#### Method 1: Using Tectonic (Recommended, Self-Contained)
+The project includes a self-contained modern XeTeX compiler (`tools/tectonic.exe`) that automatically handles package dependencies and multi-pass BibTeX resolution in a single execution:
 ```bash
-python paper/preprint/generate_docx_manuscript.py
+./tools/tectonic.exe paper/preprint/ARES_preprint.tex
 ```
 
-### Step 5: Log the Changes in `CHANGELOG.md`
-Record the date, experimental parameters, dataset version, and specific metrics added under a new version tag (e.g., `[Version 1.1.0-empirical]`).
+#### Method 2: Using Standard TeX Live / MiKTeX (`pdflatex` + `bibtex`)
+To compile using standard command-line tools:
+```bash
+cd paper/preprint
+pdflatex ARES_preprint.tex
+bibtex ARES_preprint
+pdflatex ARES_preprint.tex
+pdflatex ARES_preprint.tex
+```
+
+#### Method 3: Uploading to Overleaf
+1. Create a **New Project** $\rightarrow$ **Upload Project (ZIP)** on Overleaf.
+2. Include:
+   - `ARES_preprint.tex`
+   - `references.bib`
+   - `elsarticle.cls`
+   - `elsarticle-num.bst`
+3. Set the compiler to **pdfLaTeX** or **XeLaTeX** and set main document to `ARES_preprint.tex`.
 
 ---
 
-## 👥 Authors & Affiliation
+### Section & Structure Map
 
-- **Tanya Deep** (`USN: 1BY23IS231`) — *System Development & Visualization Lead*
-- **Shirin S. Hegde** (`USN: 1BY23IS198`) — *Data Engineering & Integration Lead*
-- **Sreshta Karthikeyan** (`USN: 1BY23IS215`) — *AI/ML Model Developer*
-- **Prof. Sneha Sureddy** — *Assistant Professor & Project Guide*
-
-**Department of Information Science and Engineering**  
-BMS Institute of Technology and Management (BMSIT&M)  
-Autonomous Institute under Visvesvaraya Technological University (VTU)  
-Bengaluru, Karnataka, India
+The manuscript follows standard Elsevier flowing research paper layout:
+1. **Frontmatter**: Title, Authors (with lowercase USN emails), Affiliation, Abstract (single paragraph), Keywords.
+2. **Section 1: Introduction**: Precursor accumulation, 3 structural challenges, and human-in-the-loop operational boundary.
+3. **Section 2: Related Work**: 5 domain literature clusters and **Table 1** (Comparative Positioning).
+4. **Section 3: Research Gap and Contributions**: Nearest-neighbour analysis (ViEWS) and 4 core system contributions.
+5. **Section 4: Research Questions and Objectives**: RQ1--RQ3 and engineering objectives O1--O5.
+6. **Section 5: System Architecture**: Modular Monolith dataflow across 6 functional submodules.
+7. **Section 6: Data Sources and Geographic Harmonization**: Ingestion of 12 OSINT data streams, canonical `Region_Key` zoning (Zone A theater, Zone B sphere), and **Table 2** (Data Sources & Constraints).
+8. **Section 7: Feature Engineering and Risk Scoring**: Formulations for Event Acceleration, Tone Volatility, Protest Ratio, Economic Stress, Diplomatic Silence, Sigmoid Z-Score Fusion, and Isolation Forest Anomaly Detection.
+9. **Section 8: Explainability and Human-in-the-Loop Decision Support**: Epistemic attribution vs. causality, and dynamic source URL evidence tracebacks.
+10. **Section 9: Evaluation Protocol**: Leakage-free prospective backtesting protocol across 2020 Galwan, 2022 Taiwan, and 2021 Myanmar crises.
+11. **Section 10: Results and Implementation Status**: **Table 3** (13-subsystem implementation audit).
+12. **Section 11: Discussion**: Systems engineering pragmatic realities, latency handling, and narrative divergence.
+13. **Section 12: Limitations, Ethics, and Responsible Use**: Media reporting bias, HITL governance, data privacy.
+14. **Section 13: Conclusion and Future Work**: Technical summary and 3-phase research roadmap.
+15. **References**: 42 numbered entries formatted via `elsarticle-num.bst`.
