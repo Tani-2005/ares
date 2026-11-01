@@ -1,0 +1,251 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{hegre2019views}
+H.~Hegre, M.~Allansson, M.~Basedau, M.~Colaresi, M.~Croicu, H.~Fjelde,
+  F.~Hoyles, L.~Hultman, S.~H{\"o}gbladh, R.~Jansen, et~al., {ViEWS}: A
+  political violence early-warning system, Journal of Peace Research 56~(2)
+  (2019) 155--174.
+\newblock \href {https://doi.org/10.1177/0022343319823860}
+  {\path{doi:10.1177/0022343319823860}}.
+
+\bibitem{hegre2018forecasting}
+H.~Hegre, R.~Jansen, H.~M. Nyg{\aa}rd, J.~Nordkvelle, Forecasting civil
+  conflict along subnational lines: An ensemble approach, Journal of Peace
+  Research 55~(2) (2018) 207--221.
+\newblock \href {https://doi.org/10.1177/0022343317730953}
+  {\path{doi:10.1177/0022343317730953}}.
+
+\bibitem{hegre2019predicting}
+H.~Hegre, M.~Bernhard, J.~Teorell, Predicting armed conflict, 2010--2050,
+  International Studies Quarterly 63~(1) (2019) 135--147.
+\newblock \href {https://doi.org/10.1093/isq/sqy064}
+  {\path{doi:10.1093/isq/sqy064}}.
+
+\bibitem{ward2013predicting}
+M.~D. Ward, N.~W. Metternich, C.~L. Dorff, M.~Gallop, F.~M. Hollenbach,
+  A.~Schultz, S.~Weschle, Predicting political instability using machine
+  learning: An assessment of the {ICEWS} project, International Studies Review
+  15~(4) (2013) 521--538.
+\newblock \href {https://doi.org/10.1111/misr.12089}
+  {\path{doi:10.1111/misr.12089}}.
+
+\bibitem{brandt2016forecasting}
+P.~T. Brandt, J.~R. Freeman, P.~A. Schrodt, Forecasting political conflict in
+  space and time, Journal of Conflict Resolution 60~(5) (2016) 921--948.
+\newblock \href {https://doi.org/10.1177/0022002714553109}
+  {\path{doi:10.1177/0022002714553109}}.
+
+\bibitem{raleigh2010introducing}
+C.~Raleigh, A.~Linke, H.~Hegre, J.~Karlsen, Introducing {ACLED}: An armed
+  conflict location and event dataset: Special data feature, Journal of Peace
+  Research 47~(5) (2010) 651--660.
+\newblock \href {https://doi.org/10.1177/0022343310378914}
+  {\path{doi:10.1177/0022343310378914}}.
+
+\bibitem{sundberg2013introducing}
+R.~Sundberg, E.~Melander, Introducing the {UCDP} georeferenced event dataset,
+  Journal of Peace Research 50~(4) (2013) 523--532.
+\newblock \href {https://doi.org/10.1177/0022343313484347}
+  {\path{doi:10.1177/0022343313484347}}.
+
+\bibitem{leetaru2013gdelt}
+K.~Leetaru, P.~A. Schrodt, {GDELT}: Global data on events, location, and tone,
+  1979--2012, in: ISA Annual Convention, Vol.~2, Citeseer, 2013, pp. 1--49.
+
+\bibitem{mach2019climate}
+K.~J. Mach, C.~M. Kraan, W.~N. Adger, H.~Buhaug, M.~Burke, J.~D. Fearon, C.~B.
+  Field, C.~S. Hendrix, J.-F. Maystadt, J.~O'Loughlin, et~al., Climate as a
+  risk factor for armed conflict, Nature 571~(7764) (2019) 193--197.
+\newblock \href {https://doi.org/10.1038/s41586-019-1300-6}
+  {\path{doi:10.1038/s41586-019-1300-6}}.
+
+\bibitem{hsiang2013quantifying}
+S.~M. Hsiang, M.~Burke, E.~Miguel, Quantifying the influence of climate on
+  human conflict, Science 341~(6151) (2013) 1235367.
+\newblock \href {https://doi.org/10.1126/science.1235367}
+  {\path{doi:10.1126/science.1235367}}.
+
+\bibitem{burke2015global}
+M.~Burke, S.~M. Hsiang, E.~Miguel, Global non-linear effect of temperature on
+  economic production, Nature 527~(7577) (2015) 235--239.
+\newblock \href {https://doi.org/10.1038/nature15725}
+  {\path{doi:10.1038/nature15725}}.
+
+\bibitem{miguel2004economic}
+E.~Miguel, S.~Satyanath, E.~Sergenti, Economic shocks and civil conflict: An
+  instrumental variables approach, Journal of Political Economy 112~(4) (2004)
+  725--753.
+\newblock \href {https://doi.org/10.1086/421174} {\path{doi:10.1086/421174}}.
+
+\bibitem{collier2004greed}
+P.~Collier, A.~Hoeffler, Greed and grievance in civil war, Oxford Economic
+  Papers 56~(4) (2004) 563--595.
+\newblock \href {https://doi.org/10.1093/oep/gpf064}
+  {\path{doi:10.1093/oep/gpf064}}.
+
+\bibitem{fearon2003ethnicity}
+J.~D. Fearon, D.~D. Laitin, Ethnicity, insurgency, and civil war, American
+  Political Science Review 97~(1) (2003) 75--90.
+\newblock \href {https://doi.org/10.1017/S0003055403000534}
+  {\path{doi:10.1017/S0003055403000534}}.
+
+\bibitem{rossi2020temporal}
+E.~Rossi, B.~Zhou, F.~Monti, F.~Frasca, D.~Fabozzi, M.~M. Bronstein, Temporal
+  graph networks for deep learning on dynamic graphs, arXiv preprint
+  arXiv:2006.10637 (2020).
+
+\bibitem{pareja2020evolvegcn}
+A.~Pareja, G.~Domeniconi, J.~Chen, T.~Teng, T.~Wang, C.-C. Kuo, P.~Patel,
+  X.~Liang, Y.~Li, et~al., {EvolveGCN}: Evolving graph convolutional networks
+  for dynamic graphs, in: Proceedings of the AAAI Conference on Artificial
+  Intelligence, Vol.~34, 2020, pp. 5363--5370.
+
+\bibitem{hossain2023identifying}
+T.~Hossain, P.~Butler, N.~Ramakrishnan, Identifying precursors to geopolitical
+  events using attention networks on dynamic news streams, in: Proceedings of
+  the AAAI Conference on Artificial Intelligence, Vol.~37, 2023, pp.
+  14234--14242.
+
+\bibitem{boschee2015icews}
+E.~Boschee, J.~Lautenschlager, S.~O'Brien, S.~Shellman, J.~Starz, M.~Ward,
+  {ICEWS} coded event data (2015).
+\newblock \href {https://doi.org/10.7910/DVN/28075}
+  {\path{doi:10.7910/DVN/28075}}.
+
+\bibitem{muchlinski2016comparing}
+D.~Muchlinski, D.~Siroky, J.~He, M.~Kocher, Comparing random forest with
+  logistic regression for predicting class-imbalanced civil war onset data,
+  Political Analysis 24~(1) (2016) 87--103.
+\newblock \href {https://doi.org/10.1093/pan/mpv024}
+  {\path{doi:10.1093/pan/mpv024}}.
+
+\bibitem{gleditsch2002armed}
+N.~P. Gleditsch, P.~Wallensteen, M.~Eriksson, M.~Sollenberg, H.~Strand, Armed
+  conflict 1946--2001: A new dataset, Journal of Peace Research 39~(5) (2002)
+  615--637.
+
+\bibitem{chojnacki2012event}
+S.~Chojnacki, C.~Ickler, S.~Kroll, T.~Zeidler, Event data on armed conflict and
+  security: New perspectives, old challenges, and some solutions, International
+  Interactions 38~(4) (2012) 382--401.
+
+\bibitem{trivedi2019dyrep}
+R.~Trivedi, M.~Farajtabar, P.~Biswal, H.~Zha, {DyRep}: Learning representations
+  over dynamic graphs, in: International Conference on Machine Learning (ICML),
+  PMLR, 2019, pp. 6309--6317.
+
+\bibitem{trivedi2017know}
+R.~Trivedi, H.~Dai, Y.~Wang, L.~Song, Know-evolve: Deep temporal reasoning for
+  dynamic knowledge graphs, in: International Conference on Machine Learning
+  (ICML), PMLR, 2017, pp. 3462--3471.
+
+\bibitem{campedelli2021learning}
+G.~M. Campedelli, I.~Cruickshank, K.~M. Carley, Learning future terrorist
+  targets through temporal meta-graphs, Artificial Intelligence and Law 29~(4)
+  (2021) 461--489.
+
+\bibitem{ma2023event}
+Y.~Ma, V.~Tresp, S.~Baier, et~al., Event forecasting with graph neural
+  networks: A survey and benchmark, ACM Computing Surveys 55~(13) (2023) 1--38.
+
+\bibitem{kipf2017semi}
+T.~N. Kipf, M.~Welling, Semi-supervised classification with graph convolutional
+  networks, in: International Conference on Learning Representations (ICLR),
+  2017.
+
+\bibitem{velickovic2018graph}
+P.~Veli{\v{c}}kovi{\'c}, G.~Cucurull, A.~Casanova, A.~Romero, P.~Li{\`o},
+  Y.~Bengio, Graph attention networks, in: International Conference on Learning
+  Representations (ICLR), 2018.
+
+\bibitem{xu2020inductive}
+D.~Xu, C.~Ruan, E.~Korpeoglu, S.~Kumar, K.~Achan, Inductive representation
+  learning on temporal graphs, in: International Conference on Learning
+  Representations (ICLR), 2020.
+
+\bibitem{devlin2019bert}
+J.~Devlin, M.-W. Chang, K.~Lee, K.~Toutanova, {BERT}: Pre-training of deep
+  bidirectional transformers for language understanding, in: Proceedings of
+  NAACL-HLT, 2019, pp. 4171--4186.
+
+\bibitem{liu2019roberta}
+Y.~Liu, M.~Ott, N.~Goyal, J.~Du, M.~Joshi, D.~Chen, O.~Levy, M.~Lewis,
+  L.~Zettlemoyer, V.~Stoyanov, {RoBERTa}: A robustly optimized {BERT}
+  pretraining approach, arXiv preprint arXiv:1907.11692 (2019).
+
+\bibitem{sanh2019distilbert}
+V.~Sanh, L.~Debut, J.~Chaumond, T.~Wolf, {DistilBERT}, a distilled version of
+  {BERT}: smaller, faster, cheaper and lighter, NeurIPS Workshop on Energy
+  Efficient Machine Learning (2019).
+
+\bibitem{banea2014multilingual}
+C.~Banea, M.~Rada, J.~Wiebe, Multilingual sentiment analysis for news streams,
+  in: Proceedings of the Annual Meeting of the Association for Computational
+  Linguistics (ACL), 2014, pp. 512--522.
+
+\bibitem{hutto2014vader}
+C.~Hutto, E.~Gilbert, {VADER}: A parsimonious rule-based model for sentiment
+  analysis of social media text, in: Proceedings of the International AAAI
+  Conference on Web and Social Media (ICWSM), Vol.~8, 2014, pp. 216--225.
+
+\bibitem{vaswani2017attention}
+A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones, A.~N. Gomez,
+  {\L}.~Kaiser, I.~Polosukhin, Attention is all you need, in: Advances in
+  Neural Information Processing Systems (NeurIPS), Vol.~30, 2017, pp.
+  5998--6008.
+
+\bibitem{radford2019language}
+A.~Radford, J.~Wu, R.~Child, D.~Luan, D.~Amodei, I.~Sutskever, Language models
+  are unsupervised multitask learners, Tech. rep., OpenAI (2019).
+
+\bibitem{reimers2019sentence}
+N.~Reimers, I.~Gurevych, Sentence-{BERT}: Sentence embeddings using {Siamese}
+  {BERT}-networks, in: Proceedings of the 2019 Conference on Empirical Methods
+  in Natural Language Processing (EMNLP), 2019, pp. 3982--3992.
+
+\bibitem{lim2021temporal}
+B.~Lim, S.~{\"O}. Ar{\i}k, N.~Loeff, T.~Pfister, Temporal {Fusion}
+  {Transformers} for interpretable multi-horizon time series forecasting,
+  International Journal of Forecasting 37~(4) (2021) 1748--1764.
+\newblock \href {https://doi.org/10.1016/j.ijforecast.2021.03.012}
+  {\path{doi:10.1016/j.ijforecast.2021.03.012}}.
+
+\bibitem{salinas2020deepar}
+D.~Salinas, V.~Flunkert, J.~Gasthaus, T.~Januschowski, {DeepAR}: Probabilistic
+  forecasting with autoregressive recurrent networks, International Journal of
+  Forecasting 36~(3) (2020) 1181--1191.
+\newblock \href {https://doi.org/10.1016/j.ijforecast.2019.07.001}
+  {\path{doi:10.1016/j.ijforecast.2019.07.001}}.
+
+\bibitem{zerveas2021transformer}
+G.~Zerveas, S.~Jayaraman, D.~Patel, A.~Bhamidipaty, C.~Eickhoff, A
+  transformer-based framework for multivariate time series representation
+  learning, in: Proceedings of the 27th ACM SIGKDD Conference on Knowledge
+  Discovery \& Data Mining, 2021, pp. 2114--2124.
+
+\bibitem{liu2008isolation}
+F.~T. Liu, K.~M. Ting, Z.-H. Zhou, Isolation forest, in: 2008 Eighth IEEE
+  International Conference on Data Mining, IEEE, 2008, pp. 413--422.
+\newblock \href {https://doi.org/10.1109/ICDM.2008.17}
+  {\path{doi:10.1109/ICDM.2008.17}}.
+
+\bibitem{scholkopf2021toward}
+B.~Sch{\"o}lkopf, F.~Locatello, S.~Bauer, N.~R. Ke, N.~Kalchbrenner, A.~Goyal,
+  Y.~Bengio, Toward causal representation learning, Proceedings of the IEEE
+  109~(5) (2021) 612--634.
+\newblock \href {https://doi.org/10.1109/JPROC.2021.3058954}
+  {\path{doi:10.1109/JPROC.2021.3058954}}.
+
+\bibitem{athey2022machine}
+S.~Athey, G.~W. Imbens, Machine learning methods that economists should know
+  for estimating heterogeneous causal effects, Journal of Economic Perspectives
+  36~(3) (2022) 31--54.
+\newblock \href {https://doi.org/10.1257/jep.36.3.31}
+  {\path{doi:10.1257/jep.36.3.31}}.
+
+\end{thebibliography}

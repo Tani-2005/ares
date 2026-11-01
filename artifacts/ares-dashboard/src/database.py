@@ -86,6 +86,11 @@ def initialize_schema():
                 economic_stress_score REAL,
                 composite_risk_score REAL,
                 risk_level TEXT CHECK(risk_level IN ('GREEN', 'AMBER', 'RED')),
+                ml_risk_score REAL,
+                ml_risk_tier TEXT,
+                top_factor TEXT,
+                top_factor_pct REAL,
+                narrative_divergence INTEGER DEFAULT 0,
                 computed_at TEXT DEFAULT (datetime('now')),
                 UNIQUE(country, feature_date, window_days)
             );
@@ -107,6 +112,23 @@ def initialize_schema():
             CREATE INDEX IF NOT EXISTS idx_features_country ON engineered_features(country);
             CREATE INDEX IF NOT EXISTS idx_features_date ON engineered_features(feature_date);
         """)
+
+        # Migration for existing SQLite databases without new columns
+        existing_cols = [r[1] for r in cursor.execute("PRAGMA table_info(engineered_features)").fetchall()]
+        new_cols = {
+            "ml_risk_score": "REAL",
+            "ml_risk_tier": "TEXT",
+            "top_factor": "TEXT",
+            "top_factor_pct": "REAL",
+            "narrative_divergence": "INTEGER DEFAULT 0"
+        }
+        for col, col_type in new_cols.items():
+            if col not in existing_cols:
+                try:
+                    cursor.execute(f"ALTER TABLE engineered_features ADD COLUMN {col} {col_type}")
+                except Exception:
+                    pass
+
         conn.commit()
         logger.info("Database schema initialized successfully.")
     except Exception as e:

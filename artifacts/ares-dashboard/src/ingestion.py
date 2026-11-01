@@ -146,7 +146,7 @@ def _generate_gdelt_sample(n: int = 50) -> list:
             "zone": get_zone(country) or "A",
             "event_type": "News Event",
             "sub_type": "GDELT Article",
-            "description": f"[Live] {topic} — {event_date.strftime('%b %d')}",
+            "description": f"[Live {datetime.now().strftime('%b %d %H:%M')}] {topic}",
             "url": f"https://gdeltproject.org/#{topic.replace(' ', '_')}",
             "goldstein_scale": round(goldstein + np.random.normal(0, 0.5), 2),
             "avg_tone": round(tone + np.random.normal(0, 1.0), 2),

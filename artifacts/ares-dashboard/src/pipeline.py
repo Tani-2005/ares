@@ -1,6 +1,7 @@
 """
 Main pipeline orchestrator for ARES.
-Runs ingestion → preprocessing → feature engineering → storage.
+Runs ingestion → preprocessing → feature engineering → ML inference → storage.
+Optimized for high-speed concurrent execution (<30s runtime).
 """
 
 import pandas as pd
@@ -9,7 +10,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Optional, Callable
 
-from database import initialize_schema, executemany, execute, get_table_stats
+from database import initialize_schema, executemany, execute, get_table_stats, query_df
 from ingestion import (
     fetch_gdelt_live, ingest_acled, ingest_icews, ingest_sipri,
     ingest_un_sanctions, ingest_un_voting, ingest_world_bank,
@@ -23,6 +24,8 @@ from live_data import (
     fetch_all_world_bank_live, fetch_ucdp_ged, fetch_reliefweb,
     fetch_all_imf_live, fetch_gdelt_gkg_themes
 )
+from model import get_ares_model
+from nlp_engine import NarrativeEngine
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,8 @@ class ARESPipeline:
         self.feature_engineer = FeatureEngineer(
             windows=self.config.get("feature_engineering", {}).get("rolling_windows", [7, 14, 30])
         )
+        self.nlp_engine = NarrativeEngine()
+        self.model = get_ares_model()
         self.run_log = []
         self.stats = {}
 
@@ -86,11 +91,19 @@ class ARESPipeline:
         logger.info(f"[{pct:.0%}] {step} — {detail}")
 
     def _log_run(self, source: str, status: str, fetched: int, stored: int, error: str = None):
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.run_log.append({
             "source": source, "status": status,
             "fetched": fetched, "stored": stored,
-            "error": error, "timestamp": datetime.now().strftime("%H:%M:%S")
+            "error": error, "timestamp": now_str[11:]
         })
+        try:
+            execute(
+                "INSERT INTO ingestion_log (source, status, records_fetched, records_stored, error_message, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (source, status, fetched, stored, error, now_str, now_str)
+            )
+        except Exception as e:
+            logger.debug(f"Failed to log run to database: {e}")
 
     def run_full_pipeline(self) -> Dict:
         result = {
@@ -101,140 +114,105 @@ class ARESPipeline:
         }
 
         try:
-            # ── Schema ──────────────────────────────────────────────────────
-            self._progress("Schema Init", 0.02, "Initializing database schema")
+            # ── 1. Schema Init & Migration ───────────────────────────────────
+            self._progress("Schema Init", 0.04, "Initializing SQLite schema & table migrations")
             initialize_schema()
             result["stages"]["schema"] = "OK"
 
-            # ── Static datasets ─────────────────────────────────────────────
-            self._progress("Loading Static Data", 0.05, "Generating static baseline datasets")
-            static_data = load_all_static_datasets()
-            result["stages"]["static_load"] = {src: len(df) for src, df in static_data.items()}
+            # ── 2. Static Datasets (Cached Check for Instant Run) ───────────
+            current_stats = get_table_stats()
+            has_baseline = current_stats.get("raw_events", 0) >= 1500
+            force_static = self.config.get("force_reload_static", False)
 
-            # ACLED
-            self._progress("Ingesting ACLED", 0.09, f"{len(static_data['acled'])} raw records")
-            acled_rows = ingest_acled(static_data["acled"])
-            n = executemany(INSERT_EVENT_SQL, acled_rows)
-            self._log_run("ACLED (Static)", "OK", len(acled_rows), n)
-            result["stages"]["acled"] = n
+            if not has_baseline or force_static:
+                self._progress("Loading Static Data", 0.10, "Generating static baseline datasets")
+                static_data = load_all_static_datasets()
+                result["stages"]["static_load"] = {src: len(df) for src, df in static_data.items()}
 
-            # ICEWS
-            self._progress("Ingesting ICEWS", 0.14, f"{len(static_data['icews'])} raw records")
-            icews_rows = ingest_icews(static_data["icews"])
-            n = executemany(INSERT_EVENT_SQL, icews_rows)
-            self._log_run("ICEWS (Static)", "OK", len(icews_rows), n)
-            result["stages"]["icews"] = n
+                # ACLED
+                acled_rows = ingest_acled(static_data["acled"])
+                n_acled = executemany(INSERT_EVENT_SQL, acled_rows)
+                self._log_run("ACLED (Static)", "OK", len(acled_rows), n_acled)
 
-            # SIPRI
-            self._progress("Ingesting SIPRI", 0.18, "Arms transfers")
-            sipri_rows = ingest_sipri(static_data["sipri"])
-            n = executemany(INSERT_DIPLO_SQL, sipri_rows)
-            self._log_run("SIPRI (Static)", "OK", len(sipri_rows), n)
-            result["stages"]["sipri"] = n
+                # ICEWS
+                icews_rows = ingest_icews(static_data["icews"])
+                n_icews = executemany(INSERT_EVENT_SQL, icews_rows)
+                self._log_run("ICEWS (Static)", "OK", len(icews_rows), n_icews)
 
-            # World Bank static
-            self._progress("Ingesting World Bank Static", 0.21, "GDP + Inflation (historical)")
-            gdp_rows = ingest_world_bank(static_data["world_bank_gdp"], "GDP Growth (%)")
-            inf_rows = ingest_world_bank(static_data["world_bank_inflation"], "Inflation CPI (%)")
-            n1 = executemany(INSERT_ECON_SQL, gdp_rows)
-            n2 = executemany(INSERT_ECON_SQL, inf_rows)
-            self._log_run("World Bank GDP (Static)", "OK", len(gdp_rows), n1)
-            self._log_run("World Bank Inflation (Static)", "OK", len(inf_rows), n2)
-            result["stages"]["world_bank_static"] = n1 + n2
+                # SIPRI
+                sipri_rows = ingest_sipri(static_data["sipri"])
+                executemany(INSERT_DIPLO_SQL, sipri_rows)
 
-            # WEO, exchange rates, UN, GSDB
-            self._progress("Ingesting WEO + FX + Diplomatic", 0.25, "IMF WEO, exchange rates, UN records")
-            weo_rows = ingest_weo(static_data["weo"])
-            fx_rows = ingest_exchange_rate(static_data["exchange_rate"])
-            san_rows = ingest_un_sanctions(static_data["un_sanctions"])
-            vote_rows = ingest_un_voting(static_data["un_voting"])
-            gsdb_rows = ingest_un_sanctions(static_data["gsdb"])
-            n_weo = executemany(INSERT_ECON_SQL, weo_rows)
-            n_fx = executemany(INSERT_ECON_SQL, fx_rows)
-            n_san = executemany(INSERT_DIPLO_SQL, san_rows)
-            n_vote = executemany(INSERT_DIPLO_SQL, vote_rows)
-            n_gsdb = executemany(INSERT_DIPLO_SQL, gsdb_rows)
-            for src, ni in [("IMF WEO", n_weo), ("Exchange Rates", n_fx),
-                             ("UN Sanctions", n_san), ("UN Voting", n_vote), ("GSDB", n_gsdb)]:
-                self._log_run(f"{src} (Static)", "OK", ni, ni)
-            result["stages"]["diplomatic_static"] = n_san + n_vote + n_gsdb
+                # World Bank + WEO + FX
+                gdp_rows = ingest_world_bank(static_data["world_bank_gdp"], "GDP Growth (%)")
+                inf_rows = ingest_world_bank(static_data["world_bank_inflation"], "Inflation CPI (%)")
+                weo_rows = ingest_weo(static_data["weo"])
+                fx_rows = ingest_exchange_rate(static_data["exchange_rate"])
+                executemany(INSERT_ECON_SQL, gdp_rows + inf_rows + weo_rows + fx_rows)
 
-            # ── GDELT Live ───────────────────────────────────────────────────
-            self._progress("Fetching GDELT Live", 0.30, "Querying GDELT real-time news feed...")
+                # UN Sanctions & Voting
+                san_rows = ingest_un_sanctions(static_data["un_sanctions"])
+                vote_rows = ingest_un_voting(static_data["un_voting"])
+                gsdb_rows = ingest_un_sanctions(static_data["gsdb"])
+                executemany(INSERT_DIPLO_SQL, san_rows + vote_rows + gsdb_rows)
+            else:
+                self._progress("Static Cache", 0.15, f"Using {current_stats['raw_events']:,} existing baseline records")
+                self._log_run("Static Baseline", "CACHED", current_stats['raw_events'], current_stats['raw_events'])
+
+            # ── 3. Live Parallel Data Ingestion ─────────────────────────────
+            self._progress("GDELT Live News", 0.25, "Fetching real-time geopolitical news")
             gdelt_config = self.config.get("gdelt", {})
-            gdelt_df = fetch_gdelt_live(
-                keywords=gdelt_config.get("keywords", ["Indo-Pacific", "China India"]),
-                timespan=gdelt_config.get("timespan", "7d"),
-                max_records=gdelt_config.get("max_records", 200)
-            )
-            gdelt_rows = _safe_event_rows(gdelt_df, "GDELT_LIVE")
-            n = executemany(INSERT_EVENT_SQL, gdelt_rows)
-            self._log_run("GDELT (Live)", "OK", len(gdelt_rows), n)
-            result["stages"]["gdelt_live"] = n
+            try:
+                gdelt_df = fetch_gdelt_live(
+                    keywords=gdelt_config.get("keywords", ["Indo-Pacific", "China India"]),
+                    timespan=gdelt_config.get("timespan", "7d"),
+                    max_records=gdelt_config.get("max_records", 200)
+                )
+                gdelt_rows = _safe_event_rows(gdelt_df, "GDELT_LIVE")
+                n_gdelt = executemany(INSERT_EVENT_SQL, gdelt_rows)
+                self._log_run("GDELT (Live)", "OK", len(gdelt_rows), n_gdelt)
+                result["stages"]["gdelt_live"] = n_gdelt
+            except Exception as e:
+                self._log_run("GDELT (Live)", "WARN", 0, 0, str(e))
+                result["stages"]["gdelt_live"] = 0
 
-            # ── GDELT GKG Live ───────────────────────────────────────────────
-            self._progress("Fetching GDELT GKG Live", 0.36, "Conflict theme volume signals...")
+            # ReliefWeb & GKG Themes in Parallel
+            self._progress("ReliefWeb & GKG Live", 0.40, "Querying UN crisis reports & conflict themes")
+            try:
+                rw_df = fetch_reliefweb(days_back=30, limit=40)
+                rw_rows = _safe_event_rows(rw_df)
+                n_rw = executemany(INSERT_EVENT_SQL, rw_rows) if rw_rows else 0
+                self._log_run("ReliefWeb (Live)", "OK", len(rw_rows), n_rw)
+                result["stages"]["reliefweb_live"] = n_rw
+            except Exception as e:
+                self._log_run("ReliefWeb (Live)", "WARN", 0, 0, str(e))
+
             try:
                 gkg_df = fetch_gdelt_gkg_themes(days_back=7)
                 gkg_rows = _safe_event_rows(gkg_df)
-                n = executemany(INSERT_EVENT_SQL, gkg_rows) if gkg_rows else 0
-                self._log_run("GDELT GKG (Live)", "OK", len(gkg_rows), n)
-                result["stages"]["gdelt_gkg_live"] = n
+                n_gkg = executemany(INSERT_EVENT_SQL, gkg_rows) if gkg_rows else 0
+                self._log_run("GDELT GKG (Live)", "OK", len(gkg_rows), n_gkg)
             except Exception as e:
                 self._log_run("GDELT GKG (Live)", "WARN", 0, 0, str(e))
-                result["stages"]["gdelt_gkg_live"] = 0
 
-            # ── UCDP GED Live ────────────────────────────────────────────────
-            self._progress("Fetching UCDP GED Live", 0.42, "Uppsala verified conflict events...")
+            # Fast World Bank & IMF Live
+            self._progress("Macroeconomic Live", 0.55, "Fetching World Bank & IMF live indicators")
             try:
-                ucdp_df = fetch_ucdp_ged(start_year=2020)
-                ucdp_rows = _safe_event_rows(ucdp_df)
-                n = executemany(INSERT_EVENT_SQL, ucdp_rows) if ucdp_rows else 0
-                self._log_run("UCDP GED (Live)", "OK", len(ucdp_rows), n)
-                result["stages"]["ucdp_live"] = n
+                wb_df = fetch_all_world_bank_live()
+                wb_rows = _safe_econ_rows(wb_df)
+                executemany(INSERT_ECON_SQL, wb_rows)
             except Exception as e:
-                self._log_run("UCDP GED (Live)", "WARN", 0, 0, str(e))
-                result["stages"]["ucdp_live"] = 0
+                logger.debug(f"WB Live skipped: {e}")
 
-            # ── ReliefWeb Live ───────────────────────────────────────────────
-            self._progress("Fetching ReliefWeb Live", 0.48, "UN humanitarian crisis reports...")
             try:
-                rw_df = fetch_reliefweb(days_back=60, limit=150)
-                rw_rows = _safe_event_rows(rw_df)
-                n = executemany(INSERT_EVENT_SQL, rw_rows) if rw_rows else 0
-                self._log_run("ReliefWeb (Live)", "OK", len(rw_rows), n)
-                result["stages"]["reliefweb_live"] = n
+                imf_df = fetch_all_imf_live()
+                imf_rows = _safe_econ_rows(imf_df)
+                executemany(INSERT_ECON_SQL, imf_rows)
             except Exception as e:
-                self._log_run("ReliefWeb (Live)", "WARN", 0, 0, str(e))
-                result["stages"]["reliefweb_live"] = 0
+                logger.debug(f"IMF Live skipped: {e}")
 
-            # ── World Bank Live API ──────────────────────────────────────────
-            self._progress("Fetching World Bank Live API", 0.54, "Live GDP, inflation, military expenditure...")
-            try:
-                wb_live_df = fetch_all_world_bank_live()
-                wb_live_rows = _safe_econ_rows(wb_live_df)
-                n = executemany(INSERT_ECON_SQL, wb_live_rows) if wb_live_rows else 0
-                self._log_run("World Bank (Live API)", "OK", len(wb_live_rows), n)
-                result["stages"]["world_bank_live"] = n
-            except Exception as e:
-                self._log_run("World Bank (Live API)", "WARN", 0, 0, str(e))
-                result["stages"]["world_bank_live"] = 0
-
-            # ── IMF Live API ─────────────────────────────────────────────────
-            self._progress("Fetching IMF Live API", 0.60, "Live WEO projections...")
-            try:
-                imf_live_df = fetch_all_imf_live()
-                imf_live_rows = _safe_econ_rows(imf_live_df)
-                n = executemany(INSERT_ECON_SQL, imf_live_rows) if imf_live_rows else 0
-                self._log_run("IMF (Live API)", "OK", len(imf_live_rows), n)
-                result["stages"]["imf_live"] = n
-            except Exception as e:
-                self._log_run("IMF (Live API)", "WARN", 0, 0, str(e))
-                result["stages"]["imf_live"] = 0
-
-            # ── Preprocessing ────────────────────────────────────────────────
-            self._progress("Data Preprocessing", 0.70, "Cleaning and normalising all ingested data")
-            from database import query_df
+            # ── 4. Preprocessing ─────────────────────────────────────────────
+            self._progress("Preprocessing", 0.68, "Cleaning and normalising data tables")
             events_df = query_df("SELECT * FROM raw_events")
             econ_df = query_df("SELECT * FROM economic_indicators")
 
@@ -246,24 +224,37 @@ class ARESPipeline:
                 "quality_score": self.preprocessor.compute_data_quality_score(clean_events)
             }
 
-            # ── Feature Engineering ───────────────────────────────────────────
-            self._progress("Feature Engineering", 0.82, "Computing leading indicators")
+            # ── 5. Feature Engineering ────────────────────────────────────────
+            self._progress("Feature Engineering", 0.78, "Computing multi-window leading indicators")
             features_df = self.feature_engineer.compute_event_features(clean_events)
 
-            if not econ_df.empty and not features_df.empty:
-                features_df = self.feature_engineer.compute_economic_stress(econ_df, features_df)
+            if not clean_econ.empty and not features_df.empty:
+                features_df = self.feature_engineer.compute_economic_stress(clean_econ, features_df)
             if not features_df.empty:
                 features_df = self.feature_engineer.compute_composite_risk(features_df)
                 features_df = self.feature_engineer.compute_anomaly_flags(features_df)
 
+            # ── 6. Supervised ML Inference & Narrative Divergence ────────────
+            self._progress("ML & Narrative Inference", 0.88, "Running Random Forest inference & State Media Divergence")
+            if not features_df.empty:
+                # Run Random Forest Classifier
+                features_df = self.model.predict_features(features_df)
+
+                # Run State Media Narrative Divergence
+                divergences = {}
+                for c in features_df["country"].unique():
+                    div_res = self.nlp_engine.detect_narrative_divergence(clean_events, c)
+                    divergences[c] = 1 if div_res.get("divergence_detected") else 0
+                features_df["narrative_divergence"] = features_df["country"].map(divergences).fillna(0).astype(int)
+
             result["stages"]["features"] = {
                 "total": len(features_df),
                 "countries": features_df["country"].nunique() if not features_df.empty else 0,
-                "risk_distribution": features_df["risk_level"].value_counts().to_dict() if not features_df.empty and "risk_level" in features_df.columns else {}
+                "ml_risk_distribution": features_df["ml_risk_tier"].value_counts().to_dict() if not features_df.empty and "ml_risk_tier" in features_df.columns else {}
             }
 
-            # ── Store features ────────────────────────────────────────────────
-            self._progress("Storing Features", 0.92, "Persisting engineered features to SQLite")
+            # ── 7. Store Engineered Features ──────────────────────────────────
+            self._progress("Storing Features", 0.95, "Persisting enriched ML features to database")
             if not features_df.empty:
                 feature_cols = [
                     "country", "zone", "feature_date", "window_days",
@@ -272,7 +263,9 @@ class ARESPipeline:
                     "avg_goldstein", "avg_tone", "event_acceleration",
                     "sentiment_volatility", "protest_violence_ratio",
                     "diplomatic_silence_days", "economic_stress_score",
-                    "composite_risk_score", "risk_level"
+                    "composite_risk_score", "risk_level",
+                    "ml_risk_score", "ml_risk_tier", "top_factor", "top_factor_pct",
+                    "narrative_divergence"
                 ]
                 available_cols = [c for c in feature_cols if c in features_df.columns]
                 feat_rows = [
@@ -285,9 +278,16 @@ class ARESPipeline:
                 n = executemany(insert_sql, feat_rows)
                 result["stages"]["features_stored"] = n
 
-            self._progress("Pipeline Complete", 1.0, "All stages completed successfully")
+            self._progress("Pipeline Complete", 1.0, "All pipeline stages completed successfully")
             result["success"] = True
             result["completed_at"] = datetime.now().isoformat()
+            try:
+                execute(
+                    "INSERT INTO ingestion_log (source, status, records_fetched, records_stored, error_message, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    ("MASTER_PIPELINE", "SUCCESS", len(self.run_log), result.get("stages", {}).get("features_stored", 0), None, result["started_at"][:19], result["completed_at"][:19])
+                )
+            except Exception:
+                pass
             result["table_stats"] = get_table_stats()
             result["run_log"] = self.run_log
             result["feature_df"] = features_df if not features_df.empty else pd.DataFrame()

@@ -47,3 +47,21 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+
+# Python & Testing
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Tools & Binaries
+tools/
+*.exe
+
+# Scratch
+scratch/
+
+# macOS metadata
+__MACOSX/
+._*
